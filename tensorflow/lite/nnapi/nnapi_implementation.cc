@@ -23,6 +23,7 @@ limitations under the License.
 #include <algorithm>
 #include <cstdlib>
 
+#include "base/logging.h"
 #include "tensorflow/lite/nnapi/sl/public/NeuralNetworksSupportLibraryImpl.h"
 
 #ifdef __ANDROID__
@@ -419,7 +420,8 @@ std::unique_ptr<const NnApi> CreateNnApiFromSupportLibrary(
   nnapi->nnapi_runtime_feature_level =
       nnapi_support_library_driver->base.implFeatureLevel;
 
-#define ASSIGN_SL_FUNCTION_TO_NNAPI(name) \
+#define ASSIGN_SL_FUNCTION_TO_NNAPI(name)               \
+  CHECK(nnapi_support_library_driver->name != nullptr); \
   nnapi->name = nnapi_support_library_driver->name;
 
   ASSIGN_SL_FUNCTION_TO_NNAPI(ANeuralNetworksMemory_createFromFd);
