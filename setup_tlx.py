@@ -10,6 +10,7 @@
 import subprocess as sb
 import os
 import glob
+from shutil import which
 
 
 # Globals corresponding to specific urls and branches
@@ -21,7 +22,7 @@ def exec(cmd, cwd = None):
     print(cmd)
     sb.call(cmd, cwd = cwd, shell=True)
 
-def init_tlx(work_dir):
+def init_tlx():
     build_dir = "llvm_dir"
 
     # Clone the TLX repository
@@ -47,6 +48,8 @@ def init_tlx(work_dir):
 
 
     llvm_project_dir = os.path.join(tlx_dir_root,"llvm-project")
+
+    llvm_project_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), llvm_project_dir)
     return llvm_project_dir
 
 
@@ -100,7 +103,15 @@ def build_tensorflow(tlx_dir_root):
     configure_tf_cmd = " ".join(configure_tf_cmd)
     exec(configure_tf_cmd)
 
-    bazel_build_cmd = ["bazel", "build", "--override_repository=llvm-project="+tlx_dir_root,  "//tensorflow/tools/pip_package:build_pip_package"]
+    bazel_names = ["bazel", "bazelisk"]
+    bazel_name = None
+
+    for bn in bazel_names:
+        if which(bn) is not None:
+            bazel_name = bn
+            break
+
+    bazel_build_cmd = [bazel_name, "build", "--override_repository=llvm-project="+tlx_dir_root,  "//tensorflow/tools/pip_package:build_pip_package"]
     bazel_build_cmd = " ".join(bazel_build_cmd)
 
 
