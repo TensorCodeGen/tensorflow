@@ -38,5 +38,19 @@ void DotOpEmitter::EmitTLXMatmul() {
   llvm::Value* rhs_shape = GetShapeVector(rhs_shape, C);
 
 
+  llvm::Value* lhs_layout = GetLayoutVector(lhs_shape, C);
+  llvm::Value* rhs_layout = GetLayoutVector(rhs_shape, C);
+
+
+  // Create Empty padding vector
+  llvm::Value* lhs_padding = Get0PaddingVector(lhs_shape, C);
+  llvm::Value* rhs_padding = Get0PaddingVector(rhs_shape, C);
+  
+  // Creating the TLX Tensor types for the operands
+  llvm::TensorType lhs_tensor_ty(lhs_shape, lhs_layout, lhs_padding);
+  llvm::TensorType rhs_tensor_ty(rhs_shape, rhs_layout, rhs_padding);
+
+
+
 
 }
