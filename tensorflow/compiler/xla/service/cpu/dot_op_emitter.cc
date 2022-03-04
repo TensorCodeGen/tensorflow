@@ -49,6 +49,10 @@ limitations under the License.
 #include "tensorflow/compiler/xla/xla_data.pb.h"
 #include "tensorflow/core/platform/logging.h"
 
+// TLX Imports
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
+
 namespace xla {
 
 using llvm_ir::SetToFirstInsertPoint;
@@ -108,6 +112,8 @@ enum class DotImplementationStrategy {
   // GEMM -- we expose this flexibility as flexibility in the contraction
   // dimensions, but we can also see this as flexibility in the input layouts.
   kEigen,
+
+  kTLXMatmul
 };
 
 // Returns the implementation strategy for a dot with the configuration
@@ -547,6 +553,10 @@ Status DotOpEmitter::Emit() {
 
     case DotImplementationStrategy::kEigen:
       return EmitCallToRuntime();
+
+    case DotImplementationStrategy::kTLXMatmul:
+      return EmitTLXMatmul();
+
   }
 }
 
@@ -973,6 +983,24 @@ bool IsAlignedGemm(const DotInfo& dot_info,
                        dot_info.result_shape, target_machine_features);
 }
 
+
+bool CanEmitTLXMatMul(
+    const HloModuleConfig& config, const DotInfo& dot_info,
+    const TargetMachineFeatures& target_machine_features) {
+
+
+  bool lhs_canonical = dot_info.dim_nums.lhs_contracting_dimensions(0) == 1;
+  bool rhs_canonical = dot_info.dim_nums.rhs_contracting_dimensions(0) == 0;
+
+  if (!(lhs_canonical && rhs_canonical)) {
+    return false;
+  }
+
+  return true;
+
+}
+
+
 bool CanEmitTiledLlvmIrGemm(
     const HloModuleConfig& config, const DotInfo& dot_info,
     const TargetMachineFeatures& target_machine_features) {
@@ -1031,7 +1059,9 @@ DotImplementationStrategy GetDotImplementationStrategy(
   }
 
   if (IsAlignedGemm(dot_info, target_machine_features)) {
-    if (CanEmitTiledLlvmIrGemm(config, dot_info, target_machine_features)) {
+    if (CanEmitTLXMatMul(config, dot_info, target_machine_features)) {
+      return DotImplementationStrategy::kTLXMatmul;
+    } else if (CanEmitTiledLlvmIrGemm(config, dot_info, target_machine_features)) {
       return DotImplementationStrategy::kTiledLlvmIrGemm;
     }
     return DotImplementationStrategy::kEigen;
@@ -1256,5 +1286,9 @@ Status EmitDotOperation(const HloInstruction& dot,
                                   executable_run_options_value, b, mlir_context,
                                   hlo_module_config, target_machine_features);
 }
+
+
+#include "tensorflow/compiler/xla/service/tlx/tlx_dot_op_emitter.h"
+
 }  // namespace cpu
 }  // namespace xla
