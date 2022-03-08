@@ -534,6 +534,8 @@ cc_library(
     srcs = ["dot_op_emitter.cc"],
     hdrs = [
         "dot_op_emitter.h",
+        "tlx_dot_op_emitter.h",
+        "tlx_utils.h",
     ],
     deps = [
         ":cpu_options",

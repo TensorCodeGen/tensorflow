@@ -9,7 +9,7 @@
 #include "llvm/IR/TensorType.h"
 
 
-#include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
+#include "tensorflow/compiler/xla/service/cpu/tlx_utils.h"
 
 
 

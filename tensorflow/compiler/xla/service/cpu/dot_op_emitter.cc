@@ -189,6 +189,10 @@ class DotOpEmitter {
   // one element at a time.
   void EmitNaiveLlvmIrGemm();
 
+
+  // Emit TLX Matmul
+  void EmitTLXMatmul();
+
   // When doing a tiled GEMV in LLVM IR, a "tile" consists of this many vector
   // registers.
   int64 GetGemvTilingFactor() const {
@@ -555,10 +559,13 @@ Status DotOpEmitter::Emit() {
       return EmitCallToRuntime();
 
     case DotImplementationStrategy::kTLXMatmul:
-      return EmitTLXMatmul();
+      EmitTLXMatmul();
+      return Status::OK();
 
   }
 }
+
+
 
 void DotOpEmitter::EmitNaiveLlvmIrGemm() {
   CHECK_EQ(addend_array_, nullptr);
@@ -1288,7 +1295,9 @@ Status EmitDotOperation(const HloInstruction& dot,
 }
 
 
-#include "tensorflow/compiler/xla/service/tlx/tlx_dot_op_emitter.h"
 
 }  // namespace cpu
 }  // namespace xla
+
+
+#include "tensorflow/compiler/xla/service/cpu/tlx_dot_op_emitter.h"
