@@ -9,7 +9,7 @@
 #include "llvm/IR/TensorType.h"
 
 
-#include "tensorflow/compiler/xla/service/cpu/tlx_utils.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_dot_op_emitter.h"
 
 
 
@@ -20,27 +20,22 @@ namespace cpu {
 
 
 
-void DotOpEmitter::EmitTLXMatmul() {
+
+void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrArray& rhs_array_,
+        const llvm_ir::IrArray& target_array_ ){
 
   const Shape& lhs_shape = lhs_array_.GetShape();
   const Shape& rhs_shape = rhs_array_.GetShape();
-  const DotDimensionNumbers& dim_nums = dot_info_.dim_nums;
 
-  PrimitiveType primitive_type = dot_info_.result_shape.element_type();
-  MatMultDims mat_mult_dims = GetMatMultDims();
 
   llvm::Value* lhs = lhs_array_.GetBasePointer();
   llvm::Value* rhs = rhs_array_.GetBasePointer();
   llvm::Value* target = target_array_.GetBasePointer();
-  int64 m = mat_mult_dims.m;
-  int64 k = mat_mult_dims.k;
-  int64 n = mat_mult_dims.n;
 
   llvm::LLVMContext & C = target->getContext();
 
 
   llvm::Type* ElemType = lhs_array_.GetElementLlvmType();
-  int64 ElemTypeSize = ShapeUtil::ByteSizeOfPrimitiveType(primitive_type);
 
   llvm::Value* tlx_lhs_shape = GetShapeVector(lhs_shape, &C);
   llvm::Value* tlx_rhs_shape = GetShapeVector(rhs_shape, &C);
@@ -58,11 +53,8 @@ void DotOpEmitter::EmitTLXMatmul() {
   llvm::TensorType lhs_tensor_ty(tlx_lhs_shape, lhs_layout, lhs_padding);
   llvm::TensorType rhs_tensor_ty(tlx_rhs_shape, rhs_layout, rhs_padding);
 
-
-
-
+    
 }
-
 
 
 }  // namespace llvm_ir

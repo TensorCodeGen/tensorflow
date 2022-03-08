@@ -52,6 +52,7 @@ limitations under the License.
 // TLX Imports
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_dot_op_emitter.h"
 
 namespace xla {
 
@@ -566,6 +567,10 @@ Status DotOpEmitter::Emit() {
 }
 
 
+void DotOpEmitter::EmitTLXMatmul() {
+    EmitTLXMatmul_Helper(lhs_array_,  rhs_array_,  target_array_);
+    return;
+}
 
 void DotOpEmitter::EmitNaiveLlvmIrGemm() {
   CHECK_EQ(addend_array_, nullptr);
@@ -1300,4 +1305,3 @@ Status EmitDotOperation(const HloInstruction& dot,
 }  // namespace xla
 
 
-#include "tensorflow/compiler/xla/service/cpu/tlx_dot_op_emitter.h"

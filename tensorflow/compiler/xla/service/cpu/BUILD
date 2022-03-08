@@ -534,8 +534,6 @@ cc_library(
     srcs = ["dot_op_emitter.cc"],
     hdrs = [
         "dot_op_emitter.h",
-        "tlx_dot_op_emitter.h",
-        "tlx_utils.h",
     ],
     deps = [
         ":cpu_options",
@@ -557,6 +555,7 @@ cc_library(
         "//tensorflow/compiler/xla/service/llvm_ir:kernel_support_library",
         "//tensorflow/compiler/xla/service/llvm_ir:llvm_loop",
         "//tensorflow/compiler/xla/service/llvm_ir:llvm_util",
+        "//tensorflow/compiler/xla/service/tlx:tlx_dot_op_emitter",
         "//tensorflow/core:lib",
         "@com_google_absl//absl/strings",
         "@llvm-project//llvm:Core",
