@@ -30,7 +30,7 @@ namespace xla {
 namespace cpu {
 
 
-void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrArray& rhs_array_, const llvm_ir::IrArray& target_array_);
+void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrArray& rhs_array_, const llvm_ir::IrArray& target_array_, llvm::IRBuilder<>* b_);
 
 
 

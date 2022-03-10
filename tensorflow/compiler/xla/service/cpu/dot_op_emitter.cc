@@ -568,7 +568,7 @@ Status DotOpEmitter::Emit() {
 
 
 void DotOpEmitter::EmitTLXMatmul() {
-    EmitTLXMatmul_Helper(lhs_array_,  rhs_array_,  target_array_);
+    EmitTLXMatmul_Helper(lhs_array_,  rhs_array_,  target_array_, b_);
     return;
 }
 

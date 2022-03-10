@@ -23,99 +23,28 @@
 namespace xla {
 namespace cpu {
 
+int64_t GetNumElements(const Shape& TensorShape);
+
+
+llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C);
+
+
+llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C);
+
+llvm::Value* Get0PaddingVector(const Shape& TensorShape, llvm::LLVMContext* C);
+
+
+llvm::Value* LoadPtrToVectorTy(llvm::Value* ArrayPtr, llvm::Type* ScalarTy,  int64_t NumElems, llvm::IRBuilder<>* b_);
+
+
+llvm::StoreInst* StoreVectorTyToPtr(llvm::Value* Vector ,llvm::Value* ArrayPtr, llvm::Type* ScalarTy,  int64_t NumElems, llvm::IRBuilder<>* b_);
 
 
 
-llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C){
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
-
-    std::vector<llvm::Constant*> ConstShapes;
-    for(unsigned i : TensorShape.dimensions()){
-        ConstShapes.push_back(
-                llvm::ConstantInt::get(I32Ty, i)
-                );
-    }
-
-    llvm::Constant* ShapeVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(ConstShapes));
-
-    return ShapeVector;
-
-}
+llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::IRBuilder<>* b_);
 
 
-llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C){
-    if (!TensorShape.has_layout()){
-        return nullptr;
-    }
-
-    const Layout& L = TensorShape.layout();
-
-    if(L.format() != DENSE){
-        return nullptr;
-    }
-
-    std::vector<llvm::Constant*> LayoutArray;
-
-
-
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
-    llvm::Constant* Zero =  llvm::ConstantInt::get(I32Ty, 0);
-    llvm::Constant* One =  llvm::ConstantInt::get(I32Ty, 1);
-
-    /*
-    if(L.minor_to_major()){
-        LayoutArray.push_back(One);
-        LayoutArray.push_back(Zero);
-    } else if (Layout.major_to_minor()){
-        LayoutArray.push_back(Zero);
-        LayoutArray.push_back(One);
-    }*/
-
-    for(auto i : L.minor_to_major()){
-        LayoutArray.push_back(
-                llvm::ConstantInt::get(I32Ty, i)
-                );
-    }
-
-
-
-    llvm::Constant* LayoutVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(LayoutArray));
-
-    return LayoutVector;
-
-}
-
-llvm::Value* Get0PaddingVector(const Shape& TensorShape, llvm::LLVMContext* C){
-    unsigned NumDim = TensorShape.dimensions_size();
-
-
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
-
-    llvm::ElementCount EC = llvm::ElementCount::getFixed(NumDim);
-    llvm::Constant* PaddingVector = llvm::ConstantVector::getSplat(EC, 
-            llvm::ConstantInt::get(I32Ty, 0));
-
-    return PaddingVector;
-
-}
-
-
-llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding, llvm::IRBuilder<>* b_){
-
-    llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
-
-    std::vector<llvm::Type*> TypeInfoArgsTy = {Vector->getType(), Shape->getType(), Layout->getType(), Padding->getType()};
-
-    llvm::Function* TypeInfoFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_typeinfo, llvm::ArrayRef<llvm::Type*>(TypeInfoArgsTy) );
-
-
-    std::vector<llvm::Value*> TypeInfoArgs = {Vector, Shape, Layout, Padding};
-
-    llvm::CallInst* CI = b_->CreateCall(TypeInfoFn->getFunctionType(), TypeInfoFn, llvm::ArrayRef<llvm::Value*>(TypeInfoArgs), "llvm_typeinfo");
-
-    return CI;
-
-}
+llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding, llvm::IRBuilder<>* b_);
 
 }  // namespace llvm_ir
 }
