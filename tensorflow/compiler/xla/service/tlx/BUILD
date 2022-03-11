@@ -31,7 +31,8 @@ filegroup(
 
 cc_library(
     name = "tlx_dot_op_emitter",
-    srcs = ["tlx_dot_op_emitter.cc"],
+    srcs = ["tlx_dot_op_emitter.cc",
+            "tlx_utils.cc"],
     hdrs = ["tlx_dot_op_emitter.h",
             "tlx_utils.h",
             ],

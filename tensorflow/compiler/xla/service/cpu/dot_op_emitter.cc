@@ -568,6 +568,7 @@ Status DotOpEmitter::Emit() {
 
 
 void DotOpEmitter::EmitTLXMatmul() {
+    LOG(INFO) << "[TLX]\t" << "Emitting TLX Matrix multiply intrinsic." << "\n";
     EmitTLXMatmul_Helper(lhs_array_,  rhs_array_,  target_array_, b_);
     return;
 }

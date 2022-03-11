@@ -25,6 +25,8 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/llvm_compiler.h"
 #include "tensorflow/core/platform/logging.h"
 
+
+
 namespace xla {
 namespace cpu {
 
@@ -59,10 +61,15 @@ class CompilerFunctor : public llvm::orc::IRCompileLayer::IRCompiler {
   // TargetTransformInfo passes.
   void AddTargetInfoPasses(llvm::legacy::PassManagerBase* passes) const;
 
+
+
   // Populates the given pass managers based on the optimization level.
   void AddOptimizationPasses(llvm::legacy::PassManagerBase* module_passes,
                              llvm::legacy::FunctionPassManager* function_passes,
                              unsigned opt_level, unsigned size_level) const;
+
+
+  void AddTLXPasses(llvm::legacy::PassManagerBase* passes) const;
 
   llvm::TargetMachine* target_machine_;
   const unsigned opt_level_;

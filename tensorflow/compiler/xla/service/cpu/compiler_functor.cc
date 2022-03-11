@@ -44,6 +44,8 @@ limitations under the License.
 #include "tensorflow/compiler/xla/util.h"
 #include "tensorflow/core/platform/logging.h"
 
+#include "llvm/Transforms/Scalar/LowerTensorIntrinsics.h"
+
 namespace xla {
 namespace cpu {
 
@@ -94,6 +96,9 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
 
   // Add the appropriate TargetLibraryInfo and TargetTransformInfo.
   AddTargetInfoPasses(&module_passes);
+
+  // Include lower tensor instrinsics pass
+  AddTLXPasses(&module_passes);
 
   // Build up optimization pipeline.
   if (optimize_for_size_) {
@@ -212,6 +217,13 @@ void CompilerFunctor::AddTargetInfoPasses(
       new llvm::TargetLibraryInfoWrapperPass(*target_library_info_impl));
   passes->add(createTargetTransformInfoWrapperPass(
       target_machine_->getTargetIRAnalysis()));
+}
+
+
+void CompilerFunctor::AddTLXPasses(
+    llvm::legacy::PassManagerBase* passes) const {
+  passes->add(
+      new llvm::LowerTensorIntrinsicsLegacyPass());
 }
 
 void CompilerFunctor::AddOptimizationPasses(
