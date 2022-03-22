@@ -69,7 +69,7 @@ class CompilerFunctor : public llvm::orc::IRCompileLayer::IRCompiler {
                              unsigned opt_level, unsigned size_level) const;
 
 
-  void AddTLXPasses(llvm::legacy::PassManagerBase* passes) const;
+  void AddTLXPasses(llvm::legacy::FunctionPassManager* passes) const;
 
   llvm::TargetMachine* target_machine_;
   const unsigned opt_level_;

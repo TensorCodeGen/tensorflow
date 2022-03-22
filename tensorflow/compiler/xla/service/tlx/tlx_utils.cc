@@ -16,6 +16,9 @@
 
 #include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
 
+#define MANTISSA  24
+#define EXPONENT 8
+
 
 //namespace llvm {
 //    class TensorType;
@@ -139,11 +142,11 @@ llvm::StoreInst* StoreVectorTyToPtr(llvm::Value* Vector ,llvm::Value* ArrayPtr, 
 
 
 
-llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::IRBuilder<>* b_){
+llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::Type* TargetType , llvm::IRBuilder<>* b_){
 
     llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
 
-    std::vector<llvm::Type*> MatMulArgsTy = {lhs->getType(), rhs->getType()};
+    std::vector<llvm::Type*> MatMulArgsTy = {TargetType};
 
     llvm::Function* MatMulFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_matmul, llvm::ArrayRef<llvm::Type*>(MatMulArgsTy) );
 
@@ -157,16 +160,22 @@ llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::IRBui
 }
 
 
-llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding, llvm::IRBuilder<>* b_){
+llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding , llvm::IRBuilder<>* b_){
 
     llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+
+    llvm::LLVMContext& Ctx = M->getContext();
+    llvm::Type* I32Ty = llvm::Type::getInt32Ty(Ctx);
+
+    llvm::Constant* Mantissa = llvm::ConstantInt::get(I32Ty, MANTISSA);
+    llvm::Constant* Exponent = llvm::ConstantInt::get(I32Ty, EXPONENT);
 
     std::vector<llvm::Type*> TypeInfoArgsTy = {Vector->getType(), Shape->getType(), Layout->getType(), Padding->getType()};
 
     llvm::Function* TypeInfoFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_typeinfo, llvm::ArrayRef<llvm::Type*>(TypeInfoArgsTy) );
 
 
-    std::vector<llvm::Value*> TypeInfoArgs = {Vector, Shape, Layout, Padding};
+    std::vector<llvm::Value*> TypeInfoArgs = {Vector, Shape, Layout, Padding, Mantissa, Exponent};
 
     llvm::CallInst* CI = b_->CreateCall(TypeInfoFn->getFunctionType(), TypeInfoFn, llvm::ArrayRef<llvm::Value*>(TypeInfoArgs), "llvm_typeinfo");
 

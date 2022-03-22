@@ -1002,12 +1002,14 @@ bool CanEmitTLXMatMul(
     const TargetMachineFeatures& target_machine_features) {
 
 
+  LOG(INFO) << "[TLX]\t" << "Checking if TLX Dot product can be emitted. "<< "\n";
+  /*
   bool lhs_canonical = dot_info.dim_nums.lhs_contracting_dimensions(0) == 1;
   bool rhs_canonical = dot_info.dim_nums.rhs_contracting_dimensions(0) == 0;
 
   if (!(lhs_canonical && rhs_canonical)) {
     return false;
-  }
+  }*/
 
   return true;
 
@@ -1071,10 +1073,11 @@ DotImplementationStrategy GetDotImplementationStrategy(
     return DotImplementationStrategy::kTiledLlvmIrGemv;
   }
 
-  if (IsAlignedGemm(dot_info, target_machine_features)) {
-    if (CanEmitTLXMatMul(config, dot_info, target_machine_features)) {
+  if (CanEmitTLXMatMul(config, dot_info, target_machine_features)) {
       return DotImplementationStrategy::kTLXMatmul;
-    } else if (CanEmitTiledLlvmIrGemm(config, dot_info, target_machine_features)) {
+  }
+  if (IsAlignedGemm(dot_info, target_machine_features)) {
+    if (CanEmitTiledLlvmIrGemm(config, dot_info, target_machine_features)) {
       return DotImplementationStrategy::kTiledLlvmIrGemm;
     }
     return DotImplementationStrategy::kEigen;

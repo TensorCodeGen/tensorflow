@@ -11,6 +11,8 @@
 #include "llvm/Support/TypeSize.h"
 
 #include "tensorflow/compiler/xla/shape.h"
+
+#include "tensorflow/core/platform/logging.h"
 #include "llvm/IR/TensorType.h"
 #include <vector>
 
@@ -42,7 +44,7 @@ llvm::StoreInst* StoreVectorTyToPtr(llvm::Value* Vector ,llvm::Value* ArrayPtr, 
 
 
 
-llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::IRBuilder<>* b_);
+llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::Type* TargetType , llvm::IRBuilder<>* b_);
 
 
 llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding, llvm::IRBuilder<>* b_);

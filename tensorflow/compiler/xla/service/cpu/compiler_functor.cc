@@ -98,7 +98,7 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
   AddTargetInfoPasses(&module_passes);
 
   // Include lower tensor instrinsics pass
-  AddTLXPasses(&module_passes);
+  AddTLXPasses(&function_passes);
 
   // Build up optimization pipeline.
   if (optimize_for_size_) {
@@ -221,9 +221,10 @@ void CompilerFunctor::AddTargetInfoPasses(
 
 
 void CompilerFunctor::AddTLXPasses(
-    llvm::legacy::PassManagerBase* passes) const {
-  passes->add(
-      new llvm::LowerTensorIntrinsicsLegacyPass());
+     llvm::legacy::FunctionPassManager* passes) const {
+
+  LOG(INFO) << "Adding TLX Lowering Pass \n";
+  passes->add( new llvm::LowerTensorIntrinsicsLegacyPass());// createLowerTensorIntrinsicsPass());
 }
 
 void CompilerFunctor::AddOptimizationPasses(
