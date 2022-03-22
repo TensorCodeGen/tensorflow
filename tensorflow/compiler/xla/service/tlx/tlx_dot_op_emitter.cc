@@ -57,7 +57,14 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
 
   LOG(INFO) << "[TLX]\t" << "Load Pointers into llvm vector type "<<"\n";
 
+  auto InsertPoint = b_ -> saveIP();
+
+
+
+  b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_ptr) -> getNextNode());
   llvm::Value* lhs_vector = LoadPtrToVectorTy(lhs_ptr, LeftElemType, num_lhs_values, b_ );
+
+  b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_ptr) -> getNextNode());
   llvm::Value* rhs_vector = LoadPtrToVectorTy(rhs_ptr, RightElemType , num_rhs_values, b_ );
   
 
@@ -99,17 +106,22 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
 
   LOG(INFO) << "[TLX]\t" << "Create tensor typeinfo for operands "<<"\n";
 
+
+  b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_vector) -> getNextNode());
   // Create typeinfo calls for tensor operands
   llvm::CallInst* lhs_type_info = CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
+
+
+  b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_vector) -> getNextNode());
   llvm::CallInst* rhs_type_info = CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
 
 
   LOG(INFO) << "[TLX]\t" << "Create tensor matmul "<<"\n";
 
+  b_ ->restoreIP(InsertPoint);
   llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
   // Create Tensor Matmul call
   llvm::CallInst* Matmul_vector = CreateMatMulCall(lhs_type_info, rhs_type_info, TargetVecTy ,  b_);
-
 
   LOG(INFO) << "[TLX]\t" << "Create tensor matmul typeinfo call"<<"\n";
   llvm::CallInst* target_type_info = CreateTypeInfoCall(Matmul_vector, tlx_target_shape, target_layout, target_padding, b_);
