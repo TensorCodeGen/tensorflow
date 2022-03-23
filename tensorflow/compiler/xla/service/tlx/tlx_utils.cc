@@ -40,12 +40,21 @@ int64_t GetNumElements(const Shape& TensorShape){
 
 
 llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C){
+    LOG(INFO) << "Invoked GetShapeVector ..."<<"\n";
     llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
 
     std::vector<llvm::Constant*> ConstShapes;
     for(unsigned i : TensorShape.dimensions()){
+        LOG(INFO) << i << " ";
         ConstShapes.push_back(
                 llvm::ConstantInt::get(I32Ty, i)
+                );
+    }
+
+    if(ConstShapes.size() == 1){
+        LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
+        ConstShapes.insert(ConstShapes.begin(), 
+                llvm::ConstantInt::get(I32Ty, 1)
                 );
     }
 
@@ -75,22 +84,21 @@ llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C){
     llvm::Constant* Zero =  llvm::ConstantInt::get(I32Ty, 0);
     llvm::Constant* One =  llvm::ConstantInt::get(I32Ty, 1);
 
-    /*
-    if(L.minor_to_major()){
-        LayoutArray.push_back(One);
-        LayoutArray.push_back(Zero);
-    } else if (Layout.major_to_minor()){
-        LayoutArray.push_back(Zero);
-        LayoutArray.push_back(One);
-    }*/
-
     for(auto i : L.minor_to_major()){
-        LayoutArray.push_back(
+        LayoutArray.insert(
+                LayoutArray.begin(),
                 llvm::ConstantInt::get(I32Ty, i)
                 );
     }
 
 
+
+    if(LayoutArray.size() == 1){
+        LOG(INFO) << "Represent 1D tensor with degenerated 2D Layout ...";
+        LayoutArray.insert(LayoutArray.begin(), 
+                llvm::ConstantInt::get(I32Ty, 1)
+                );
+    }
 
     llvm::Constant* LayoutVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(LayoutArray));
 
@@ -100,6 +108,8 @@ llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C){
 
 llvm::Value* Get0PaddingVector(const Shape& TensorShape, llvm::LLVMContext* C){
     unsigned NumDim = TensorShape.dimensions_size();
+
+    if(NumDim == 1) NumDim++;
 
 
     llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
@@ -128,13 +138,23 @@ llvm::Value* LoadPtrToVectorTy(llvm::Value* ArrayPtr, llvm::Type* ScalarTy,  int
 
 
 llvm::StoreInst* StoreVectorTyToPtr(llvm::Value* Vector ,llvm::Value* ArrayPtr, llvm::Type* ScalarTy,  int64_t NumElems, llvm::IRBuilder<>* b_){
+
+    LOG(INFO) << "Creating Store vector inst" << "\n";
+
     llvm::VectorType*  VecTy = llvm::FixedVectorType::get(ScalarTy, NumElems);
     unsigned AS = llvm::dyn_cast<llvm::PointerType>(ArrayPtr->getType())->getAddressSpace();
+
+    LOG(INFO) << "Obtained address space:\t" << AS<< "\n";
+
     llvm::PointerType* VecPtrTy = llvm::PointerType::get(
             VecTy, AS
             );
 
-    llvm::Value* PtrCast = b_->CreatePointerCast(ArrayPtr, VecPtrTy, "vec_cast");
+
+
+    llvm::Value* PtrCast = b_->CreatePointerCast(ArrayPtr, VecPtrTy, "vec.store.cast");
+
+    LOG(INFO) << "Obtained Ptrcast, now storing back"<< "\n";
     llvm::StoreInst* VecStore = b_->CreateStore(Vector, PtrCast);
 
     return VecStore;

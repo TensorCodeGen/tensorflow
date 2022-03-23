@@ -27,7 +27,8 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
   LOG(INFO) << "[TLX]\t" << "EmitTLXMatmul_Helper"<<"\n";
   const Shape& lhs_shape = lhs_array_.GetShape();
   const Shape& rhs_shape = rhs_array_.GetShape();
-  const Shape& target_shape = rhs_array_.GetShape();
+  const Shape& target_shape = target_array_.GetShape();
+
 
 
   llvm::Value* lhs_ptr = lhs_array_.GetBasePointer();
@@ -131,8 +132,6 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
   LOG(INFO) << "[TLX]\t" << "Create store back for result"<<"\n";
 
 
-  LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Dot "<<"\n";
-  return;
   // To support those operations not supported by TLX
   // we store the output back into the target IR Array so 
   // XLA can use this output.
@@ -140,6 +139,8 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
 
 
   LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Dot "<<"\n";
+
+  return;
 
     
 }
