@@ -32,9 +32,11 @@ filegroup(
 cc_library(
     name = "tlx_dot_op_emitter",
     srcs = ["tlx_dot_op_emitter.cc",
-            "tlx_utils.cc"],
+            "tlx_utils.cc",
+            "tlx_transpose_emitter.cc"],
     hdrs = ["tlx_dot_op_emitter.h",
             "tlx_utils.h",
+            "tlx_transpose_emitter.h",
             ],
     deps = [
         "//tensorflow/compiler/xla:shape_util",

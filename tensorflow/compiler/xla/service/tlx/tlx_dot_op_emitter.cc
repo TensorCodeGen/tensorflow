@@ -121,8 +121,19 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
 
   b_ ->restoreIP(InsertPoint);
   llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
+
+
+
+
+
   // Create Tensor Matmul call
-  llvm::CallInst* Matmul_vector = CreateMatMulCall(lhs_type_info, rhs_type_info, TargetVecTy ,  b_);
+  llvm::CallInst* Matmul_vector;
+
+  if(lhs_shape.dimensions_size() == 1 && rhs_shape.dimensions_size() > 1) {
+    Matmul_vector = CreateMatMulCall(rhs_type_info, lhs_type_info, TargetVecTy ,  b_);
+  } else {
+    Matmul_vector = CreateMatMulCall(lhs_type_info, rhs_type_info, TargetVecTy ,  b_);
+  }
 
   LOG(INFO) << "[TLX]\t" << "Create tensor matmul typeinfo call"<<"\n";
   llvm::CallInst* target_type_info = CreateTypeInfoCall(Matmul_vector, tlx_target_shape, target_layout, target_padding, b_);

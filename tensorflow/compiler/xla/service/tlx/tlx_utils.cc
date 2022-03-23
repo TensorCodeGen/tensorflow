@@ -12,6 +12,8 @@
 #include "tensorflow/compiler/xla/shape.h"
 #include "llvm/IR/TensorType.h"
 #include <vector>
+#include <algorithm>
+
 
 
 #include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
@@ -53,10 +55,39 @@ llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C){
 
     if(ConstShapes.size() == 1){
         LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
-        ConstShapes.insert(ConstShapes.begin(), 
+        ConstShapes.insert(ConstShapes.end(), 
                 llvm::ConstantInt::get(I32Ty, 1)
                 );
     }
+
+    llvm::Constant* ShapeVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(ConstShapes));
+
+    return ShapeVector;
+
+}
+
+
+llvm::Value* GetReverseShapeVector(const Shape& TensorShape, llvm::LLVMContext* C){
+    LOG(INFO) << "Invoked GetReverseShapeVector ..."<<"\n";
+    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
+
+    std::vector<llvm::Constant*> ConstShapes;
+    for(unsigned i : TensorShape.dimensions()){
+        LOG(INFO) << i << " ";
+        ConstShapes.push_back(
+                llvm::ConstantInt::get(I32Ty, i)
+                );
+    }
+
+    if(ConstShapes.size() == 1){
+        LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
+        ConstShapes.insert(ConstShapes.end(), 
+                llvm::ConstantInt::get(I32Ty, 1)
+                );
+    }
+
+    std::reverse(ConstShapes.begin(), ConstShapes.end());
+
 
     llvm::Constant* ShapeVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(ConstShapes));
 
@@ -95,7 +126,7 @@ llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C){
 
     if(LayoutArray.size() == 1){
         LOG(INFO) << "Represent 1D tensor with degenerated 2D Layout ...";
-        LayoutArray.insert(LayoutArray.begin(), 
+        LayoutArray.insert(LayoutArray.end(), 
                 llvm::ConstantInt::get(I32Ty, 1)
                 );
     }
