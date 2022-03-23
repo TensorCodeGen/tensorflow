@@ -46,6 +46,10 @@ limitations under the License.
 
 #include "llvm/Transforms/Scalar/LowerTensorIntrinsics.h"
 
+#include "llvm/include/llvm/Transforms/Utils.h"
+#include "llvm/Transforms/Utils/Mem2Reg.h"
+#include "llvm/Transforms/Utils/PromoteMemToReg.h"
+
 namespace xla {
 namespace cpu {
 
@@ -97,9 +101,12 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
   // Add the appropriate TargetLibraryInfo and TargetTransformInfo.
   AddTargetInfoPasses(&module_passes);
 
+
   // Include lower tensor instrinsics pass
   AddTLXPasses(&function_passes);
 
+
+  
   // Build up optimization pipeline.
   if (optimize_for_size_) {
     // Optimizing for size turns on -O2 level optimizations.
@@ -108,12 +115,12 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
     // turn on more aggressive code size optimizations than size_level = 1, we
     // pass size_level = 1 because in many cases a size_level of 2 does
     // worse. Investigate why.
-    AddOptimizationPasses(&module_passes, &function_passes, /*opt_level=*/2,
-                          /*size_level=*/1);
+    //AddOptimizationPasses(&module_passes, &function_passes, /*opt_level=*/2, /*size_level=*/1);
   } else {
-    AddOptimizationPasses(&module_passes, &function_passes,
-                          /*opt_level=*/opt_level_, /*size_level=*/0);
+    //AddOptimizationPasses(&module_passes, &function_passes, /*opt_level=*/opt_level_, /*size_level=*/0);
   }
+
+
 
   // Run optimization passes on module.
   function_passes.doInitialization();
@@ -224,7 +231,10 @@ void CompilerFunctor::AddTLXPasses(
      llvm::legacy::FunctionPassManager* passes) const {
 
   LOG(INFO) << "Adding TLX Lowering Pass \n";
+
+  passes->add(  llvm::createPromoteMemoryToRegisterPass()  );// mem2reg
   passes->add( new llvm::LowerTensorIntrinsicsLegacyPass());// createLowerTensorIntrinsicsPass());
+
 }
 
 void CompilerFunctor::AddOptimizationPasses(

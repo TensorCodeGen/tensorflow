@@ -392,6 +392,9 @@ bool RegisterKnownJITSymbols() {
   registry->Register("memmove", reinterpret_cast<void*>(memmove), "Host");
   registry->Register("memset", reinterpret_cast<void*>(memset), "Host");
 
+
+  registry->Register("malloc", reinterpret_cast<void*>(malloc), "Host");
+
 #ifdef __APPLE__
   registry->Register("__bzero", reinterpret_cast<void*>(bzero), "Host");
   registry->Register("bzero", reinterpret_cast<void*>(bzero), "Host");
