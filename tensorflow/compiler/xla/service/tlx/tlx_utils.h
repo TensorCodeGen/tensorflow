@@ -32,6 +32,8 @@ int64_t GetNumElements(const Shape& TensorShape);
 llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C);
 
 
+llvm::Value* GetReverseShapeVector(const Shape& TensorShape, llvm::LLVMContext* C);
+
 llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C);
 
 llvm::Value* Get0PaddingVector(const Shape& TensorShape, llvm::LLVMContext* C);

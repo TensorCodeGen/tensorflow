@@ -575,7 +575,21 @@ Status DotOpEmitter::Emit() {
 
 void DotOpEmitter::EmitTLXMatmul() {
     LOG(INFO) << "[TLX]\t" << "Emitting TLX Matrix multiply intrinsic." << "\n";
-    EmitTLXMatmul_Helper(lhs_array_,  rhs_array_,  target_array_, b_);
+
+      llvm::Value* lhs = lhs_array_.GetBasePointer();
+      llvm::Value* rhs = rhs_array_.GetBasePointer();
+      llvm::Value* target = target_array_.GetBasePointer();
+
+      MatMultDims mat_mult_dims = GetMatMultDims();
+
+      //if (mat_mult_dims.lhs_column_major) {
+      //      LOG(INFO) << "Calling with swapped arguments !"<<"\n";
+      //      EmitTLXMatmul_Helper(rhs_array_,  lhs_array_,  target_array_, b_);
+      //} else {
+            EmitTLXMatmul_Helper(lhs_array_,  rhs_array_,  target_array_, b_);
+     // }
+
+
     return;
 }
 
@@ -1009,13 +1023,16 @@ bool CanEmitTLXMatMul(
 
 
   LOG(INFO) << "[TLX]\t" << "Checking if TLX Dot product can be emitted. "<< "\n";
-  /*
+
   bool lhs_canonical = dot_info.dim_nums.lhs_contracting_dimensions(0) == 1;
   bool rhs_canonical = dot_info.dim_nums.rhs_contracting_dimensions(0) == 0;
 
+  /*
   if (!(lhs_canonical && rhs_canonical)) {
+    LOG(INFO) << "[TLX]\t" << "Contracting dim not canonical -> skip TLX "<<"\n";
     return false;
   }*/
+
 
   return true;
 

@@ -247,6 +247,7 @@ bool RegisterKnownJITSymbols() {
       xla::CustomCallTargetRegistry::Global();
   registry->Register("printf", reinterpret_cast<void*>(&printf), "Host");
   registry->Register("puts", reinterpret_cast<void*>(&puts), "Host");
+  registry->Register("malloc", reinterpret_cast<void*>(&malloc), "Host");
 
 #define REGISTER_CPU_RUNTIME_SYMBOL(base_name)                               \
   do {                                                                       \
@@ -394,7 +395,6 @@ bool RegisterKnownJITSymbols() {
   registry->Register("memset", reinterpret_cast<void*>(memset), "Host");
 
 
-  registry->Register("malloc", reinterpret_cast<void*>(malloc), "Host");
 
 #ifdef __APPLE__
   registry->Register("__bzero", reinterpret_cast<void*>(bzero), "Host");

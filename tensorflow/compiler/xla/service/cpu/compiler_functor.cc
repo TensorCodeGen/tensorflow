@@ -131,7 +131,21 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
   for (auto func = module.begin(); func != module.end(); ++func) {
     function_passes.run(*func);
   }
+
+
+
+  if (post_optimization_hook_) {
+    post_optimization_hook_(module);
+  }
+
+  VLOG(2) << "IR after TLX optimizations";
+  XLA_VLOG_LINES(2, llvm_ir::DumpModuleToString(module));
+
   function_passes.doFinalization();
+
+
+
+
   module_passes.run(module);
 
   CHECK(!llvm::verifyModule(module, &llvm::dbgs()));

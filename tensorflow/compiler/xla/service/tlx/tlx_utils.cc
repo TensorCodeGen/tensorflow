@@ -55,7 +55,7 @@ llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C){
 
     if(ConstShapes.size() == 1){
         LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
-        ConstShapes.insert(ConstShapes.end(), 
+        ConstShapes.insert(ConstShapes.begin(), 
                 llvm::ConstantInt::get(I32Ty, 1)
                 );
     }
@@ -81,7 +81,7 @@ llvm::Value* GetReverseShapeVector(const Shape& TensorShape, llvm::LLVMContext* 
 
     if(ConstShapes.size() == 1){
         LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
-        ConstShapes.insert(ConstShapes.end(), 
+        ConstShapes.insert(ConstShapes.begin(), 
                 llvm::ConstantInt::get(I32Ty, 1)
                 );
     }
@@ -126,7 +126,7 @@ llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C){
 
     if(LayoutArray.size() == 1){
         LOG(INFO) << "Represent 1D tensor with degenerated 2D Layout ...";
-        LayoutArray.insert(LayoutArray.end(), 
+        LayoutArray.insert(LayoutArray.begin(), 
                 llvm::ConstantInt::get(I32Ty, 1)
                 );
     }
