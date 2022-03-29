@@ -3,7 +3,7 @@
 # repository.
 #
 #
-# Currently, TLX is built on top of LLVM version 12.0 and by identification, the
+# Currently, TLX is built on top of LLVM version 13.0 and by identification, the
 # corresponding stable release of tensorflow would be Tensorflow 2.6.3
 # ==============================================================================
 
