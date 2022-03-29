@@ -211,6 +211,42 @@ llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::Type*
 }
 
 
+llvm::CallInst* CreateTensorStoreCall(llvm::Value* Token, llvm::Value* Ptr, llvm::Value* Stride  ,llvm::IRBuilder<>* b_){
+
+    llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+
+    std::vector<llvm::Type*> TensorStoreTy = {Ptr->getType(), Stride->getType()};
+
+    llvm::Function* TensorStoreFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_store, llvm::ArrayRef<llvm::Type*>(TensorStoreTy) );
+
+
+    std::vector<llvm::Value*> TensorStoreArgs = {Ptr, Stride, Token};
+
+    llvm::CallInst* CI = b_->CreateCall(TensorStoreFn->getFunctionType(), TensorStoreFn, llvm::ArrayRef<llvm::Value*>(TensorStoreArgs), "");
+
+    return CI;
+
+}
+
+
+llvm::CallInst* CreateTensorLoadCall( llvm::Value* Ptr, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding ,llvm::Value* Stride , llvm::IRBuilder<>* b_){
+
+    llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+
+    std::vector<llvm::Type*> TensorLoadTy = {Ptr->getType(), Shape->getType(), Layout->getType(), Padding->getType() , Stride->getType()};
+
+    llvm::Function* TensorLoadFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_load, llvm::ArrayRef<llvm::Type*>(TensorLoadTy) );
+
+
+    std::vector<llvm::Value*> TensorLoadArgs = {Ptr, Shape, Layout, Padding, Stride};
+
+    llvm::CallInst* CI = b_->CreateCall(TensorLoadFn->getFunctionType(), TensorLoadFn, llvm::ArrayRef<llvm::Value*>(TensorLoadArgs), "llvm_tensor_load");
+
+    return CI;
+
+}
+
+
 llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding , llvm::IRBuilder<>* b_){
 
     llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();

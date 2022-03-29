@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/cpu/simple_orc_jit.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <algorithm>
 #include <cstdio>

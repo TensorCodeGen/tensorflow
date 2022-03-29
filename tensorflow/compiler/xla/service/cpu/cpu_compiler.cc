@@ -413,7 +413,8 @@ Status CpuCompiler::RunHloPassesThroughLayoutAssn(
       module->mutable_entry_computation_layout(),
       LayoutAssignment::InstructionCanChangeLayout, target_machine_features);
 
-  pipeline.AddPass<CpuInstructionFusion>();
+  /* TEMP Disable instruction fusion */
+  // pipeline.AddPass<CpuInstructionFusion>();
 
   return pipeline.Run(module).status();
 }

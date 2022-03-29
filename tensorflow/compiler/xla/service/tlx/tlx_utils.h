@@ -49,5 +49,11 @@ llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::Type*
 
 llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding, llvm::IRBuilder<>* b_);
 
+
+llvm::CallInst* CreateTensorStoreCall(llvm::Value* Token, llvm::Value* Ptr, llvm::Value* Stride  ,llvm::IRBuilder<>* b_);
+
+
+llvm::CallInst* CreateTensorLoadCall( llvm::Value* Ptr, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding ,llvm::Value* Stride , llvm::IRBuilder<>* b_);
+
 }  // namespace llvm_ir
 }

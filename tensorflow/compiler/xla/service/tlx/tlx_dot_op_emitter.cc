@@ -61,6 +61,7 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
   auto InsertPoint = b_ -> saveIP();
 
 
+  /*
 
   b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_ptr) -> getNextNode());
   llvm::Value* lhs_vector = LoadPtrToVectorTy(lhs_ptr, LeftElemType, num_lhs_values, b_ );
@@ -68,6 +69,7 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
   b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_ptr) -> getNextNode());
   llvm::Value* rhs_vector = LoadPtrToVectorTy(rhs_ptr, RightElemType , num_rhs_values, b_ );
   
+  */
 
 
 
@@ -108,13 +110,16 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
   LOG(INFO) << "[TLX]\t" << "Create tensor typeinfo for operands "<<"\n";
 
 
-  b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_vector) -> getNextNode());
+  // b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_vector) -> getNextNode());
   // Create typeinfo calls for tensor operands
-  llvm::CallInst* lhs_type_info = CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
+  llvm::Value* lhs_stride = lhs_padding;
+  llvm::CallInst* lhs_type_info = CreateTensorLoadCall(lhs_ptr, tlx_lhs_shape, lhs_layout, lhs_padding, lhs_stride ,b_);  // CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
 
 
-  b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_vector) -> getNextNode());
-  llvm::CallInst* rhs_type_info = CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
+  // b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_vector) -> getNextNode());
+
+  llvm::Value* rhs_stride = rhs_padding;
+  llvm::CallInst* rhs_type_info = CreateTensorLoadCall(rhs_ptr, tlx_rhs_shape, rhs_layout, rhs_padding, rhs_stride ,b_);//  CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
 
 
   LOG(INFO) << "[TLX]\t" << "Create tensor matmul "<<"\n";
@@ -146,9 +151,14 @@ void EmitTLXMatmul_Helper(const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrA
   // To support those operations not supported by TLX
   // we store the output back into the target IR Array so 
   // XLA can use this output.
+  /*
   llvm::StoreInst* StoreResult = StoreVectorTyToPtr(Matmul_vector, target_ptr, TargetElemType, num_target_values , b_ );
+  */
 
 
+
+  llvm::Value* target_stride = target_padding;
+  llvm::CallInst* StoreResult = CreateTensorStoreCall(target_type_info, target_ptr, target_stride, b_ );
   LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Dot "<<"\n";
 
   return;

@@ -542,21 +542,27 @@ Status DotOpEmitter::Emit() {
   switch (GetDotImplementationStrategy(hlo_module_config_, dot_info_,
                                        target_machine_features_)) {
     case DotImplementationStrategy::kNaiveLlvmIr:
+      LOG(INFO) << "Emitting Naive LLVM IR Gemm"<<"\n";
       EmitNaiveLlvmIrGemm();
       return Status::OK();
 
     case DotImplementationStrategy::kTiledLlvmIrGemv:
+
+      LOG(INFO) << "Emitting Tiled LLVM IR Gemv"<<"\n";
       EmitTiledLlvmIrGemv();
       return Status::OK();
 
     case DotImplementationStrategy::kTiledLlvmIrGemm:
+      LOG(INFO) << "Emitting Tiled LLVM IR Gemm"<<"\n";
       EmitTiledLlvmIrGemm();
       return Status::OK();
 
     case DotImplementationStrategy::kLinalgMatmul:
+      LOG(INFO) << "Emitting Linalg matmul"<<"\n";
       return EmitLinalgMatmul();
 
     case DotImplementationStrategy::kEigen:
+      LOG(INFO) << "Emitting runtime matmul"<<"\n";
       return EmitCallToRuntime();
 
     case DotImplementationStrategy::kTLXMatmul:
@@ -1064,6 +1070,10 @@ DotImplementationStrategy GetDotImplementationStrategy(
   // Any Matrix-Vector product of floating point or integral type, or
   // a transpose-dot fusion of the same can be lowered to a tiled LLVM
   // IR implementation.
+  //
+  if (CanEmitTLXMatMul(config, dot_info, target_machine_features)) {
+      return DotImplementationStrategy::kTLXMatmul;
+  }
   if ((dot_info.result_shape.dimensions_size() <= 1 ||
        (dot_info.result_shape.dimensions_size() == 2 &&
         (dot_info.result_shape.dimensions(0) == 1 ||
@@ -1073,9 +1083,6 @@ DotImplementationStrategy GetDotImplementationStrategy(
     return DotImplementationStrategy::kTiledLlvmIrGemv;
   }
 
-  if (CanEmitTLXMatMul(config, dot_info, target_machine_features)) {
-      return DotImplementationStrategy::kTLXMatmul;
-  }
   if (IsAlignedGemm(dot_info, target_machine_features)) {
     if (CanEmitTiledLlvmIrGemm(config, dot_info, target_machine_features)) {
       return DotImplementationStrategy::kTiledLlvmIrGemm;

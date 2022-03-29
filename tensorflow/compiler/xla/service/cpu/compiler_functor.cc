@@ -102,8 +102,6 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
   AddTargetInfoPasses(&module_passes);
 
 
-  // Include lower tensor instrinsics pass
-  AddTLXPasses(&function_passes);
 
 
   
@@ -121,6 +119,9 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
   }
 
 
+
+  // Include lower tensor instrinsics pass
+  AddTLXPasses(&function_passes);
 
   // Run optimization passes on module.
   function_passes.doInitialization();
@@ -148,6 +149,8 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
     post_optimization_hook_(module);
   }
 
+  LOG(INFO) << "Completed LLVM IR Transformations ! "<<"\n";
+
   // Generate code.
   llvm::MCContext* mc_context;
   llvm::legacy::PassManager codegen_passes;
@@ -166,6 +169,9 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
       LOG(WARNING) << "Could convert memory buffer to object file!";
     }
   }
+
+
+  LOG(INFO) << "Completed Object Code generation ! "<<"\n";
 
   return std::move(memory_buffer);
 }
