@@ -104,6 +104,9 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
 
 
 
+  // Include lower tensor instrinsics pass
+  AddTLXPasses(&function_passes);
+
   
   // Build up optimization pipeline.
   if (optimize_for_size_) {
@@ -113,15 +116,13 @@ llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> CompilerFunctor::operator()(
     // turn on more aggressive code size optimizations than size_level = 1, we
     // pass size_level = 1 because in many cases a size_level of 2 does
     // worse. Investigate why.
-    //AddOptimizationPasses(&module_passes, &function_passes, /*opt_level=*/2, /*size_level=*/1);
+    AddOptimizationPasses(&module_passes, &function_passes, /*opt_level=*/2, /*size_level=*/1);
   } else {
-    //AddOptimizationPasses(&module_passes, &function_passes, /*opt_level=*/opt_level_, /*size_level=*/0);
+    AddOptimizationPasses(&module_passes, &function_passes, /*opt_level=*/opt_level_, /*size_level=*/0);
   }
 
 
 
-  // Include lower tensor instrinsics pass
-  AddTLXPasses(&function_passes);
 
   // Run optimization passes on module.
   function_passes.doInitialization();

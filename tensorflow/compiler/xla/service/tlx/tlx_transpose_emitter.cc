@@ -33,8 +33,10 @@ namespace xla {
 
             int64_t NumElems = GetNumElements(InputShape);
 
+            llvm::Value* TransposeLayout = GetLayoutVector(InputShape, &Ctx);
 
             llvm::VectorType*  VecTy = llvm::FixedVectorType::get(ElemTy, NumElems);
+
 
 
             std::vector<llvm::Type*> TransposeArgsTy = {VecTy};

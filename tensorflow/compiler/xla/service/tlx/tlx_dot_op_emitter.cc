@@ -234,6 +234,12 @@ namespace xla {
                 // we store the output back into the target IR Array so 
                 // XLA can use this output.
                 llvm::StoreInst* StoreResult = StoreVectorTyToPtr(Matmul_vector, target_ptr, TargetElemType, num_target_values , b_ );
+                
+                /*
+                llvm::Value* target_stride = target_padding; 
+                llvm::CallInst* TensorStore = CreateTensorStoreCall(target_type_info, target_ptr, target_stride, b_ );
+                */
+
 
 
 
