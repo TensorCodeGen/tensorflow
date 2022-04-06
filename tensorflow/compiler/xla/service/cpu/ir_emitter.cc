@@ -79,6 +79,9 @@ limitations under the License.
 #include "tensorflow/core/lib/math/math_util.h"
 #include "tensorflow/core/platform/logging.h"
 
+// TLX Imports
+#include "tensorflow/compiler/xla/service/tlx/tlx_relu_emitter.h"
+
 namespace xla {
 
 namespace {
@@ -3232,7 +3235,37 @@ Status IrEmitter::DefaultAction(HloInstruction* hlo) {
       return GetIrArrayFor(operand).EmitReadArrayElement(index, &b_);
     };
   }
+
   CpuElementalIrEmitter elemental_emitter(hlo_module_config_, this, module_);
+
+
+  bool EmitTLXRelu = true;
+
+  if(EmitTLXRelu && hlo->opcode() == HloOpcode::kMaximum){
+      LOG(INFO) << "[Elemental IR Emitter]\t"<<"Emitting Max (i.e. RELU) with TLX";
+
+        const HloInstruction* source = hlo->operand(1); 
+        const HloInstruction* target = hlo; 
+
+
+
+
+        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Getting source arrays ... ";
+        llvm_ir::IrArray source_array(GetIrArrayFor(source));
+        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got source array ... ";
+
+
+        TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
+        llvm_ir::IrArray target_array = (GetIrArrayFor(target));
+        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got target array ... ";
+        
+        EmitTLXRelu_Helper(source_array, target_array, b());
+
+
+        return Status::OK();
+
+  }
+
   return EmitTargetElementLoop(
       hlo, elemental_emitter.MakeElementGenerator(hlo, operand_to_generator));
 }

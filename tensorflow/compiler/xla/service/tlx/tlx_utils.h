@@ -18,6 +18,8 @@
 
 
 
+#ifndef TLX_UTILS_H
+#define TLX_UTILS_H
 
 //namespace llvm {
 //    class TensorType;
@@ -59,3 +61,6 @@ llvm::CallInst* CreateTensorLoadCall( llvm::Value* Ptr, llvm::Value* Shape, llvm
 
 }  // namespace llvm_ir
 }
+
+
+#endif // TLX_UTILS_H

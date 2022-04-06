@@ -434,6 +434,7 @@ cc_library(
         "//tensorflow/compiler/xla/service/llvm_ir:llvm_util",
         "//tensorflow/compiler/xla/service/llvm_ir:loop_emitter",
         "//tensorflow/compiler/xla/service/llvm_ir:tuple_ops",
+        "//tensorflow/compiler/xla/service/tlx:tlx_relu_emitter",
         "//tensorflow/core:lib",
         "//tensorflow/core/lib/math:math_util",
         "//tensorflow/core/platform:logging",

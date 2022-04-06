@@ -18,6 +18,10 @@
 
 #include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
 
+
+#ifndef TLX_UTILS_CC
+#define TLX_UTILS_CC
+
 #define MANTISSA  24
 #define EXPONENT 8
 
@@ -272,3 +276,6 @@ llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm
 
 }  // namespace llvm_ir
 }
+
+
+#endif // TLX_UTILS_CC

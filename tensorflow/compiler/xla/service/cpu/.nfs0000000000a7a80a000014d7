@@ -1,0 +1,76 @@
+./BUILD:        "//tensorflow/compiler/xla/service:conditional_to_select",
+./BUILD:    ] + select({
+./build_defs.bzl:    return (["-DEIGEN_AVOID_STL_ARRAY"] + select({
+./build_defs.bzl:    }) + select({
+./cpu_compiler.cc:#include "llvm/Support/TargetSelect.h"
+./cpu_compiler.cc:#include "tensorflow/compiler/xla/service/conditional_to_select.h"
+./cpu_compiler.cc:  pipeline.AddPass<ConditionalToSelect>();
+./cpu_compiler.cc:  // Select an order for emitting the HLO instructions for each computation.
+./cpu_compiler.cc:  // Select an order for emitting the HLO instructions for each
+./ir_emitter.cc:Status IrEmitter::HandleSelect(HloInstruction* select) {
+./ir_emitter.cc:  auto pred = select->operand(0);
+./ir_emitter.cc:  return DefaultAction(select);
+./ir_emitter.cc:Status IrEmitter::HandleTupleSelect(HloInstruction* tuple_select) {
+./ir_emitter.cc:  auto pred = tuple_select->operand(0);
+./ir_emitter.cc:  auto on_true = tuple_select->operand(1);
+./ir_emitter.cc:  auto on_false = tuple_select->operand(2);
+./ir_emitter.cc:  TF_RET_CHECK(tuple_select->shape().IsTuple());
+./ir_emitter.cc:  TF_RETURN_IF_ERROR(EmitTargetAddressForOp(tuple_select));
+./ir_emitter.cc:  llvm_ir::EmitTupleSelect(GetIrArrayFor(tuple_select), GetIrArrayFor(pred),
+./ir_emitter.cc:Status IrEmitter::HandleSelectAndScatter(HloInstruction* select_and_scatter) {
+./ir_emitter.cc:  CHECK_EQ(select_and_scatter->operand_count(), 3);
+./ir_emitter.cc:  const auto operand = select_and_scatter->operand(0);
+./ir_emitter.cc:  const auto source = select_and_scatter->operand(1);
+./ir_emitter.cc:  const auto init_value = select_and_scatter->operand(2);
+./ir_emitter.cc:  const Window& window = select_and_scatter->window();
+./ir_emitter.cc:  // TODO(b/31410564): Implement dilation for select-and-scatter.
+./ir_emitter.cc:        "Dilation for SelectAndScatter is not implemented on CPU. ");
+./ir_emitter.cc:  // Pseudo code for select-and-scatter:
+./ir_emitter.cc:  // the first iteration is completed and the first operand value is selected.
+./ir_emitter.cc:  //       if !initialized_flag or select(selected_value, operand(I)) == false:
+./ir_emitter.cc:  //         selected_value = operand(I)
+./ir_emitter.cc:  //         selected_index = I
+./ir_emitter.cc:  //   output(selected_index) = scatter(output(selected_index), source(S))
+./ir_emitter.cc:      select_and_scatter, /*desc=*/IrName(select_and_scatter, "init"),
+./ir_emitter.cc:  llvm_ir::ForLoopNest source_loops(IrName(select_and_scatter), &b_);
+./ir_emitter.cc:  // Allocate space to keep the currently selected value, its index, and
+./ir_emitter.cc:  llvm::Value* selected_value_address = llvm_ir::EmitAllocaAtFunctionEntry(
+./ir_emitter.cc:      "selected_value_address", &b_,
+./ir_emitter.cc:  llvm::Value* selected_index_address =
+./ir_emitter.cc:          b_.getInt64Ty(), b_.getInt32(rank), "selected_index_address", &b_);
+./ir_emitter.cc:  llvm_ir::ForLoopNest window_loops(IrName(select_and_scatter, "window"), &b_);
+./ir_emitter.cc:  // If the initialized_flag is false, initialize the selected value and index
+./ir_emitter.cc:          llvm::Value* selected_index_address_slot =
+./ir_emitter.cc:              InBoundsGEP(selected_index_address, {b_.getInt32(i)});
+./ir_emitter.cc:          Store(operand_index[i], selected_index_address_slot);
+./ir_emitter.cc:  Store(operand_data, selected_value_address);
+./ir_emitter.cc:  // If the initialized_flag is true, call the `select` function to potentially
+./ir_emitter.cc:  // update the selected value and index with the currently visiting operand.
+./ir_emitter.cc:      *select_and_scatter->select(),
+./ir_emitter.cc:      {Load(selected_value_address), operand_element}, "select_function");
+./ir_emitter.cc:  // If the 'select' function returns false, update the selected value and the
+./ir_emitter.cc:  llvm_ir::LlvmIfData if_select_lhs =
+./ir_emitter.cc:      llvm_ir::EmitIfThenElse(cond, "if-select-lhs", &b_);
+./ir_emitter.cc:  SetToFirstInsertPoint(if_select_lhs.false_block, &b_);
+./ir_emitter.cc:  Store(Load(operand_address), selected_value_address);
+./ir_emitter.cc:  // the selected index of the output. The value we store at the output
+./ir_emitter.cc:  std::vector<llvm::Value*> selected_multi_index;
+./ir_emitter.cc:    llvm::Value* selected_index_address_slot =
+./ir_emitter.cc:        InBoundsGEP(selected_index_address, {b_.getInt32(i)});
+./ir_emitter.cc:    selected_multi_index.push_back(Load(selected_index_address_slot));
+./ir_emitter.cc:  llvm_ir::IrArray output_array(GetIrArrayFor(select_and_scatter));
+./ir_emitter.cc:  llvm_ir::IrArray::Index selected_index(
+./ir_emitter.cc:      selected_multi_index, output_array.GetShape(), source_index.GetType());
+./ir_emitter.cc:      output_array.EmitReadArrayElement(selected_index, &b_);
+./ir_emitter.cc:      *select_and_scatter->scatter(), {output_value, source_value},
+./ir_emitter.cc:  output_array.EmitWriteArrayElement(selected_index, scatter_value, &b_);
+./ir_emitter.cc:        return b->CreateSelect(
+./ir_emitter.cc:        return b->CreateSelect(
+./ir_emitter.h:  Status HandleSelect(HloInstruction* select) override;
+./ir_emitter.h:  Status HandleTupleSelect(HloInstruction* tuple_select) override;
+./ir_emitter.h:  Status HandleSelectAndScatter(HloInstruction* select_and_scatter) override;
+./parallel_task_assignment.cc:  // *) Emit custom loops (kSelectAndScatter).
+./simple_orc_jit.cc:          .selectTarget(
+./vector_support_library.cc:  a = b_->CreateSelect(b_->CreateFCmpUGE(a, low_value), a, low_value);
+./vector_support_library.cc:  a = b_->CreateSelect(b_->CreateFCmpULE(a, high_value), a, high_value);
+grep: input file ‘./log’ is also the output

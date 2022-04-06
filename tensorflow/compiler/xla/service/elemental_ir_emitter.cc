@@ -2363,6 +2363,9 @@ llvm_ir::ElementGenerator ElementalIrEmitter::MakeElementGenerator(
                             operand_to_generator.at(hlo->operand(0))(index));
         return EmitUnaryOp(hlo, operand_value);
       };
+
+
+
     case HloOpcode::kAdd:
     case HloOpcode::kAnd:
     case HloOpcode::kAtan2:
@@ -2380,6 +2383,7 @@ llvm_ir::ElementGenerator ElementalIrEmitter::MakeElementGenerator(
     case HloOpcode::kShiftRightArithmetic:
     case HloOpcode::kShiftRightLogical:
     case HloOpcode::kSubtract:
+      LOG(INFO) << "[Elemental IR Emitter]\t"<<" Max generator case"<<"\n";
       return [this, hlo, &operand_to_generator](
                  const IrArray::Index& index) -> StatusOr<llvm::Value*> {
         const HloInstruction* lhs = hlo->operand(0);
@@ -2388,6 +2392,7 @@ llvm_ir::ElementGenerator ElementalIrEmitter::MakeElementGenerator(
                             operand_to_generator.at(lhs)(index));
         TF_ASSIGN_OR_RETURN(llvm::Value * rhs_value,
                             operand_to_generator.at(rhs)(index));
+
         return EmitBinaryOp(hlo, lhs_value, rhs_value);
       };
     case HloOpcode::kSelect:

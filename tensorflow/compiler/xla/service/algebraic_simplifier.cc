@@ -66,6 +66,7 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/stream_executor/lib/statusor.h"
 
+
 namespace xla {
 
 namespace {
@@ -2624,6 +2625,29 @@ Status AlgebraicSimplifierVisitor::HandleMaximum(HloInstruction* maximum) {
   HloInstruction *lhs, *rhs;
   CHECK(Match(maximum, m::Maximum(m::Op(&lhs), m::Op(&rhs))));
 
+  LOG(INFO) << "[AlgebraicSimplifierVisitor] HandleMaximum "<<"\n";
+
+
+  bool EmitTLXRelu = true;
+
+  if(EmitTLXRelu){
+      /*
+      llvm_ir::IrArray lhs_array(GetIrArrayFor(lhs));
+      llvm_ir::IrArray rhs_array(GetIrArrayFor(rhs));
+
+
+      llvm_ir::IrArray target_array = GetIrArrayFor(maximum);
+      const Shape& lhs_shape = lhs_array_.GetShape();
+      const Shape& rhs_shape = rhs_array_.GetShape();
+      const Shape& target_shape = target_array_.GetShape();
+
+      CallInst* ReluCall = CreateReluCall();*/
+
+
+      LOG(INFO) << "[AlgebraicSimplifierVisitor] Retaining "<<"\n";
+      return Status::OK();
+  }
+
   HloInstruction* clamp_upper_bound_bcast;
   HloInstruction* clamp_lower_bound_bcast;
   HloInstruction* to_clamp;
@@ -2641,6 +2665,7 @@ Status AlgebraicSimplifierVisitor::HandleMaximum(HloInstruction* maximum) {
       return ReplaceWithNewInstruction(maximum, std::move(clamp));
     }
   }
+
 
   HloInstruction* clamp_lower_bound;
   HloInstruction* clamp_upper_bound;

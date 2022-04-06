@@ -631,6 +631,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
             typename std::enable_if<std::is_integral<NativeT>::value>::type* =
                 nullptr>
   Status HandleMaximum(HloInstruction* maximum) {
+    LOG(INFO) << "[TLX]\t"<< "Generating Max instruction"<<"\n";
     TF_ASSIGN_OR_RETURN(
         parent_->evaluated_[maximum],
         ElementWiseBinaryOp(maximum, [](ElementwiseT lhs, ElementwiseT rhs) {
@@ -642,6 +643,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
   template <typename NativeT, typename std::enable_if<std::is_floating_point<
                                   NativeT>::value>::type* = nullptr>
   Status HandleMaximum(HloInstruction* maximum) {
+    LOG(INFO) << "[TLX]\t"<< "Generating Max instruction"<<"\n";
     TF_ASSIGN_OR_RETURN(
         parent_->evaluated_[maximum],
         ElementWiseBinaryOp(maximum, [](ElementwiseT lhs, ElementwiseT rhs) {
@@ -995,6 +997,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
                                     std::is_integral<NativeT>::value>::type* =
                 nullptr>
   Status HandleClamp(HloInstruction* clamp) {
+    LOG(INFO) << "[TLX]\t"<< "Generating clamp instruction"<<"\n";
     std::function<ElementwiseT(ElementwiseT, ElementwiseT, ElementwiseT)>
         clamp_op = [](ElementwiseT low, ElementwiseT value, ElementwiseT high) {
           return static_cast<ElementwiseT>(
@@ -1012,6 +1015,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
                                     !std::is_integral<NativeT>::value>::type* =
                 nullptr>
   Status HandleClamp(HloInstruction* clamp) {
+    LOG(INFO) << "[TLX]\t"<< "Generating clamp instruction"<<"\n";
     std::function<ElementwiseT(ElementwiseT, ElementwiseT, ElementwiseT)>
         clamp_op = [](ElementwiseT low, ElementwiseT value, ElementwiseT high) {
           if (std::isnan(low) || std::isnan(high) || std::isnan(value)) {
