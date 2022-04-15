@@ -99,7 +99,6 @@ def extend_tlx_repo(tlx_dir_root):
 # virtual environment as there are specific
 # python package requirements
 
-
 def build_tensorflow(tlx_dir_root):
 
     tf_deps_cmd = [
@@ -161,11 +160,8 @@ def build_tensorflow(tlx_dir_root):
 
 def main():
     tlx_root = init_tlx()
-
     extend_tlx_repo(tlx_root)
-
     build_tensorflow(tlx_root)
-
 
 if __name__ == "__main__":
     main()
