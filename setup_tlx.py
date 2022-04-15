@@ -105,7 +105,7 @@ def build_tensorflow(tlx_dir_root):
     tf_deps_cmd = [
         "pip",
         "install",
-        "numpy",
+        "numpy==1.22.3",
         "wheel",
         "packaging",
         "keras_preprocessing",
