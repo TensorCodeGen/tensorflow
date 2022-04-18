@@ -81,6 +81,7 @@ limitations under the License.
 
 // TLX Imports
 #include "tensorflow/compiler/xla/service/tlx/tlx_relu_emitter.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_tanh_emitter.h"
 
 namespace xla {
 
@@ -3240,28 +3241,40 @@ Status IrEmitter::DefaultAction(HloInstruction* hlo) {
 
 
   bool EmitTLXRelu = true;
+ bool EmitTLXTanh = true;
 
   if(EmitTLXRelu && hlo->opcode() == HloOpcode::kMaximum){
       LOG(INFO) << "[Elemental IR Emitter]\t"<<"Emitting Max (i.e. RELU) with TLX";
 
         const HloInstruction* source = hlo->operand(1); 
         const HloInstruction* target = hlo; 
-
-
-
-
         LOG(INFO) << "[Elemental IR Emitter]\t"<<"Getting source arrays ... ";
         llvm_ir::IrArray source_array(GetIrArrayFor(source));
         LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got source array ... ";
-
-
         TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
         llvm_ir::IrArray target_array = (GetIrArrayFor(target));
         LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got target array ... ";
-        
         EmitTLXRelu_Helper(source_array, target_array, b());
+        return Status::OK();
 
+  }
 
+   
+
+  if(EmitTLXTanh && hlo->opcode() == HloOpcode::kTanh){
+      LOG(INFO) << "[Elemental IR Emitter]\t"<<"Emitting Tanh with TLX";
+
+        const HloInstruction* source = hlo->operand(0); 
+        LOG(INFO) << "[Temp]\t"<<"Obtained source";
+        const HloInstruction* target = hlo; 
+        
+        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Getting source arrays ... ";
+        llvm_ir::IrArray source_array(GetIrArrayFor(source));
+        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got source array ... ";
+        TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
+        llvm_ir::IrArray target_array = (GetIrArrayFor(target));
+        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got target array ... ";
+        EmitTLXTanh_Helper(source_array, target_array, b());
         return Status::OK();
 
   }
