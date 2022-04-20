@@ -72,138 +72,75 @@ namespace xla {
 
 
 
+            LOG(INFO) << "[TLX]\t" << "Get Shape vectors "<<"\n";
+            llvm::Value* tlx_lhs_shape = GetShapeVector(lhs_shape, &C);
+            llvm::Value* tlx_rhs_shape = GetShapeVector(rhs_shape, &C);
+            llvm::Value* tlx_target_shape = GetShapeVector(target_shape, &C);
+
+
+
+
+            LOG(INFO) << "[TLX]\t" << "Get Layout vectors "<<"\n";
+            llvm::Value* lhs_layout = GetLayoutVector(lhs_shape, &C);
+            llvm::Value* rhs_layout = GetLayoutVector(rhs_shape, &C);
+            llvm::Value* target_layout = GetLayoutVector(target_shape, &C);
+
+
+
+
+
+            LOG(INFO) << "[TLX]\t" << "Get Padding vectors "<<"\n";
+            // Create Empty padding vector
+            llvm::Value* lhs_padding = Get0PaddingVector(lhs_shape, &C);
+            llvm::Value* rhs_padding = Get0PaddingVector(rhs_shape, &C);
+            llvm::Value* target_padding = Get0PaddingVector(target_shape, &C);
+
+            llvm::CallInst* lhs_type_info = nullptr;
+            llvm::CallInst* rhs_type_info = nullptr;
+
             if(lhs_shape.dimensions_size() == 1 && rhs_shape.dimensions_size() > 1){
                 // Vector matrix product
                 LOG(INFO) << "Vector Matrix Product";
-
-                LOG(INFO) << "[TLX]\t" << "Get Shape vectors "<<"\n";
-                llvm::Value* tlx_lhs_shape = GetShapeVector(lhs_shape, &C);
-                llvm::Value* tlx_rhs_shape = GetShapeVector(rhs_shape, &C);
-                llvm::Value* tlx_target_shape = GetShapeVector(target_shape, &C);
-
-
-
-
-                LOG(INFO) << "[TLX]\t" << "Get Layout vectors "<<"\n";
-                llvm::Value* lhs_layout = GetLayoutVector(lhs_shape, &C);
-                llvm::Value* rhs_layout = GetLayoutVector(rhs_shape, &C);
-                llvm::Value* target_layout = GetLayoutVector(target_shape, &C);
-
-
-
-
-
-                LOG(INFO) << "[TLX]\t" << "Get Padding vectors "<<"\n";
-                // Create Empty padding vector
-                llvm::Value* lhs_padding = Get0PaddingVector(lhs_shape, &C);
-                llvm::Value* rhs_padding = Get0PaddingVector(rhs_shape, &C);
-                llvm::Value* target_padding = Get0PaddingVector(target_shape, &C);
-
-
 
 
                 LOG(INFO) << "[TLX]\t" << "Create tensor typeinfo for operands "<<"\n";
 
 
                 b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_vector) -> getNextNode());
-                llvm::CallInst* lhs_type_info = CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
+                lhs_type_info = CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
 
 
                 b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_vector) -> getNextNode());
-                llvm::CallInst* rhs_type_info = CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
+                rhs_type_info = CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
 
                 llvm::CallInst* rhs_transpose = CreateTransposeCall(rhs_type_info, rhs_shape, RightElemType, b_ );
                 llvm::CallInst* rhs_transpose_type_info = CreateTypeInfoCall(rhs_transpose, GetReverseShapeVector(rhs_shape, &C), rhs_layout, rhs_padding, b_);
 
+                rhs_type_info = rhs_transpose_type_info;
 
 
                 LOG(INFO) << "[TLX]\t" << "Create tensor matmul "<<"\n";
 
                 b_ ->restoreIP(InsertPoint);
-                llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
-
-
-
-
-
-                // Create Tensor Matmul call
-                llvm::CallInst* Matmul_vector;
-
-                Matmul_vector = CreateMatMulCall(lhs_type_info, rhs_transpose_type_info, TargetVecTy ,  b_);
-
-
-                LOG(INFO) << "[TLX]\t" << "Create tensor matmul typeinfo call"<<"\n";
-                llvm::CallInst* target_type_info = CreateTypeInfoCall(Matmul_vector, tlx_target_shape, target_layout, target_padding, b_);
-
-
-
-                LOG(INFO) << "[TLX]\t" << "Create store back for result"<<"\n";
-
-
-                // To support those operations not supported by TLX
-                // we store the output back into the target IR Array so 
-                // XLA can use this output.
-                llvm::StoreInst* StoreResult = StoreVectorTyToPtr(Matmul_vector, target_ptr, TargetElemType, num_target_values , b_ );
-
-
-
-                LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Dot "<<"\n";
-
-                return;
 
 
             } else if(lhs_shape.dimensions_size() == rhs_shape.dimensions_size() &&  rhs_shape.dimensions_size() > 1){
                 // Matrix Matrix product
                 LOG(INFO) << "Matrix Matrix Product";
 
-                LOG(INFO) << "[TLX]\t" << "Get Shape vectors "<<"\n";
-                llvm::Value* tlx_lhs_shape = GetShapeVector(lhs_shape, &C);
-                llvm::Value* tlx_rhs_shape = GetShapeVector(rhs_shape, &C);
-                llvm::Value* tlx_target_shape = GetShapeVector(target_shape, &C);
-
-
-
-
-                LOG(INFO) << "[TLX]\t" << "Get Layout vectors "<<"\n";
-                llvm::Value* lhs_layout = GetLayoutVector(lhs_shape, &C);
-                llvm::Value* rhs_layout = GetLayoutVector(rhs_shape, &C);
-                llvm::Value* target_layout = GetLayoutVector(target_shape, &C);
-
-
-
-
-
-                LOG(INFO) << "[TLX]\t" << "Get Padding vectors "<<"\n";
-                // Create Empty padding vector
-                llvm::Value* lhs_padding = Get0PaddingVector(lhs_shape, &C);
-                llvm::Value* rhs_padding = Get0PaddingVector(rhs_shape, &C);
-                llvm::Value* target_padding = Get0PaddingVector(target_shape, &C);
-
-
-
-
-
                 LOG(INFO) << "[TLX]\t" << "Create tensor typeinfo for operands "<<"\n";
 
 
                 b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_vector) -> getNextNode());
-                llvm::CallInst* lhs_type_info = CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
+                lhs_type_info = CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
 
 
                 b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_vector) -> getNextNode());
-                llvm::CallInst* rhs_type_info = CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
+                rhs_type_info = CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
 
 
 
                 b_ ->restoreIP(InsertPoint);
-                llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
-
-
-
-
-
-                // Create Tensor Matmul call
-                llvm::CallInst* Matmul_vector;
 
                 // We need transpose
 
@@ -223,30 +160,6 @@ namespace xla {
                 }
 
 
-                Matmul_vector = CreateMatMulCall(lhs_type_info, rhs_type_info, TargetVecTy ,  b_);
-
-                LOG(INFO) << "[TLX]\t" << "Create tensor matmul typeinfo call"<<"\n";
-                llvm::CallInst* target_type_info = CreateTypeInfoCall(Matmul_vector, tlx_target_shape, target_layout, target_padding, b_);
-                LOG(INFO) << "[TLX]\t" << "Create store back for result"<<"\n";
-
-
-                // To support those operations not supported by TLX
-                // we store the output back into the target IR Array so 
-                // XLA can use this output.
-                llvm::StoreInst* StoreResult = StoreVectorTyToPtr(Matmul_vector, target_ptr, TargetElemType, num_target_values , b_ );
-                
-                /*
-                llvm::Value* target_stride = target_padding; 
-                llvm::CallInst* TensorStore = CreateTensorStoreCall(target_type_info, target_ptr, target_stride, b_ );
-                */
-
-
-
-
-                LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Dot "<<"\n";
-                return;
-
-
             } else if(lhs_shape.dimensions_size() > 1 && rhs_shape.dimensions_size() == 1){
                 // Matrix Vector Product
                 LOG(INFO) << "Matrix Vector Product";
@@ -254,6 +167,32 @@ namespace xla {
                 // Vector Vector product
                 LOG(INFO) << "Vector Vector Product";
             }
+
+
+            llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
+
+
+            // Create Tensor Matmul call
+            llvm::CallInst* Matmul_vector = CreateMatMulCall(lhs_type_info, rhs_type_info, TargetVecTy ,  b_);
+
+            LOG(INFO) << "[TLX]\t" << "Create tensor matmul typeinfo call"<<"\n";
+            llvm::CallInst* target_type_info = CreateTypeInfoCall(Matmul_vector, tlx_target_shape, target_layout, target_padding, b_);
+
+
+
+            LOG(INFO) << "[TLX]\t" << "Create store back for result"<<"\n";
+
+
+            // To support those operations not supported by TLX
+            // we store the output back into the target IR Array so 
+            // XLA can use this output.
+            llvm::StoreInst* StoreResult = StoreVectorTyToPtr(Matmul_vector, target_ptr, TargetElemType, num_target_values , b_ );
+
+
+
+            LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Dot "<<"\n";
+
+            return;
 
 
         }
