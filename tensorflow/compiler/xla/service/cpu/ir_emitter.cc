@@ -82,6 +82,8 @@ limitations under the License.
 // TLX Imports
 #include "tensorflow/compiler/xla/service/tlx/tlx_relu_emitter.h"
 #include "tensorflow/compiler/xla/service/tlx/tlx_tanh_emitter.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_conv_emitter.h"
+
 
 namespace xla {
 
@@ -961,6 +963,7 @@ Status IrEmitter::HandleConvolution(HloInstruction* convolution) {
                                     ? b_.getHalfTy()->getPointerTo()
                                     : b_.getFloatTy()->getPointerTo();
       bool multi_threaded =
+
           hlo_module_config_.debug_options().xla_cpu_multi_thread_eigen();
       bool use_mkl_dnn =
           hlo_module_config_.debug_options().xla_cpu_use_mkl_dnn();
@@ -980,6 +983,21 @@ Status IrEmitter::HandleConvolution(HloInstruction* convolution) {
         LOG(WARNING) << "Using Eigen instead of MKL-DNN for single-threaded "
                         "conv2d function.";
       }
+
+      bool EmitTLXConv = true;
+
+      if (EmitTLXConv) {
+        llvm_ir::IrArray lhs_array(GetIrArrayFor(lhs));
+        llvm_ir::IrArray rhs_array(GetIrArrayFor(rhs));
+
+        TF_RETURN_IF_ERROR(EmitTargetAddressForOp(convolution));
+        llvm_ir::IrArray target_array = GetIrArrayFor(convolution);
+        EmitTLXConv_Helper(lhs_array, rhs_array, target_array, row_stride, col_stride,
+                           lhs_row_dilation, lhs_col_dilation, rhs_row_dilation,
+                           rhs_col_dilation, b());
+        return Status::OK();
+      }
+
       EmitCallToFunc(fn_name,
                      {
                          GetExecutableRunOptionsArgument(),
@@ -3239,44 +3257,48 @@ Status IrEmitter::DefaultAction(HloInstruction* hlo) {
 
   CpuElementalIrEmitter elemental_emitter(hlo_module_config_, this, module_);
 
+  bool EmitTLXRelu = false;
+  bool EmitTLXTanh = true;
 
-  bool EmitTLXRelu = true;
- bool EmitTLXTanh = true;
+  if (EmitTLXRelu && hlo->opcode() == HloOpcode::kMaximum) {
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Emitting Max (i.e. RELU) with TLX";
 
-  if(EmitTLXRelu && hlo->opcode() == HloOpcode::kMaximum){
-      LOG(INFO) << "[Elemental IR Emitter]\t"<<"Emitting Max (i.e. RELU) with TLX";
-
-        const HloInstruction* source = hlo->operand(1); 
-        const HloInstruction* target = hlo; 
-        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Getting source arrays ... ";
-        llvm_ir::IrArray source_array(GetIrArrayFor(source));
-        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got source array ... ";
-        TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
-        llvm_ir::IrArray target_array = (GetIrArrayFor(target));
-        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got target array ... ";
-        EmitTLXRelu_Helper(source_array, target_array, b());
-        return Status::OK();
-
+    const HloInstruction* source = hlo->operand(1);
+    const HloInstruction* target = hlo;
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Getting source arrays ... ";
+    llvm_ir::IrArray source_array(GetIrArrayFor(source));
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Got source array ... ";
+    TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
+    llvm_ir::IrArray target_array = (GetIrArrayFor(target));
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Got target array ... ";
+    EmitTLXRelu_Helper(source_array, target_array, b());
+    return Status::OK();
   }
 
-   
+  if (EmitTLXTanh && hlo->opcode() == HloOpcode::kTanh) {
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Emitting Tanh with TLX";
 
-  if(EmitTLXTanh && hlo->opcode() == HloOpcode::kTanh){
-      LOG(INFO) << "[Elemental IR Emitter]\t"<<"Emitting Tanh with TLX";
+    const HloInstruction* source = hlo->operand(0);
+    LOG(INFO) << "[Temp]\t"
+              << "Obtained source";
+    const HloInstruction* target = hlo;
 
-        const HloInstruction* source = hlo->operand(0); 
-        LOG(INFO) << "[Temp]\t"<<"Obtained source";
-        const HloInstruction* target = hlo; 
-        
-        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Getting source arrays ... ";
-        llvm_ir::IrArray source_array(GetIrArrayFor(source));
-        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got source array ... ";
-        TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
-        llvm_ir::IrArray target_array = (GetIrArrayFor(target));
-        LOG(INFO) << "[Elemental IR Emitter]\t"<<"Got target array ... ";
-        EmitTLXTanh_Helper(source_array, target_array, b());
-        return Status::OK();
-
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Getting source arrays ... ";
+    llvm_ir::IrArray source_array(GetIrArrayFor(source));
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Got source array ... ";
+    TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
+    llvm_ir::IrArray target_array = (GetIrArrayFor(target));
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Got target array ... ";
+    EmitTLXTanh_Helper(source_array, target_array, b());
+    return Status::OK();
   }
 
   return EmitTargetElementLoop(
