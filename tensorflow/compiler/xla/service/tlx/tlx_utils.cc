@@ -1,281 +1,293 @@
+#include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
+
+#include <algorithm>
+#include <vector>
+
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Value.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"
-#include "llvm/IR/Type.h"
-#include "llvm/Support/TypeSize.h"
-
-#include "tensorflow/compiler/xla/shape.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/TensorType.h"
-#include <vector>
-#include <algorithm>
-
-
-
-#include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
-
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Value.h"
+#include "llvm/Support/TypeSize.h"
+#include "tensorflow/compiler/xla/shape.h"
 
 #ifndef TLX_UTILS_CC
 #define TLX_UTILS_CC
 
-#define MANTISSA  24
+#define MANTISSA 24
 #define EXPONENT 8
 
-
-//namespace llvm {
-//    class TensorType;
-//};
+// namespace llvm {
+//     class TensorType;
+// };
 
 namespace xla {
 namespace cpu {
 
-int64_t GetNumElements(const Shape& TensorShape){
-    int64_t num_elem = 1;
+int64_t GetNumElements(const Shape& TensorShape) {
+  int64_t num_elem = 1;
 
-    for (unsigned i : TensorShape.dimensions()){
-        num_elem *= i;
-    }
+  for (unsigned i : TensorShape.dimensions()) {
+    num_elem *= i;
+  }
 
-    return num_elem;
-
+  return num_elem;
 }
 
+llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C) {
+  LOG(INFO) << "Invoked GetShapeVector ..."
+            << "\n";
+  llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
 
-llvm::Value* GetShapeVector(const Shape& TensorShape, llvm::LLVMContext* C){
-    LOG(INFO) << "Invoked GetShapeVector ..."<<"\n";
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
+  std::vector<llvm::Constant*> ConstShapes;
+  for (unsigned i : TensorShape.dimensions()) {
+    LOG(INFO) << i << " ";
+    ConstShapes.push_back(llvm::ConstantInt::get(I32Ty, i));
+  }
 
-    std::vector<llvm::Constant*> ConstShapes;
-    for(unsigned i : TensorShape.dimensions()){
-        LOG(INFO) << i << " ";
-        ConstShapes.push_back(
-                llvm::ConstantInt::get(I32Ty, i)
-                );
-    }
+  if (ConstShapes.size() == 1) {
+    LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
+    ConstShapes.insert(ConstShapes.begin(), llvm::ConstantInt::get(I32Ty, 1));
+  }
 
-    if(ConstShapes.size() == 1){
-        LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
-        ConstShapes.insert(ConstShapes.begin(), 
-                llvm::ConstantInt::get(I32Ty, 1)
-                );
-    }
+  llvm::Constant* ShapeVector =
+      llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(ConstShapes));
 
-    llvm::Constant* ShapeVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(ConstShapes));
-
-    return ShapeVector;
-
+  return ShapeVector;
 }
 
+llvm::Value* GetReverseShapeVector(const Shape& TensorShape,
+                                   llvm::LLVMContext* C) {
+  LOG(INFO) << "Invoked GetReverseShapeVector ..."
+            << "\n";
+  llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
 
-llvm::Value* GetReverseShapeVector(const Shape& TensorShape, llvm::LLVMContext* C){
-    LOG(INFO) << "Invoked GetReverseShapeVector ..."<<"\n";
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
+  std::vector<llvm::Constant*> ConstShapes;
+  for (unsigned i : TensorShape.dimensions()) {
+    LOG(INFO) << i << " ";
+    ConstShapes.push_back(llvm::ConstantInt::get(I32Ty, i));
+  }
 
-    std::vector<llvm::Constant*> ConstShapes;
-    for(unsigned i : TensorShape.dimensions()){
-        LOG(INFO) << i << " ";
-        ConstShapes.push_back(
-                llvm::ConstantInt::get(I32Ty, i)
-                );
-    }
+  if (ConstShapes.size() == 1) {
+    LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
+    ConstShapes.insert(ConstShapes.begin(), llvm::ConstantInt::get(I32Ty, 1));
+  }
 
-    if(ConstShapes.size() == 1){
-        LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
-        ConstShapes.insert(ConstShapes.begin(), 
-                llvm::ConstantInt::get(I32Ty, 1)
-                );
-    }
+  std::reverse(ConstShapes.begin(), ConstShapes.end());
 
-    std::reverse(ConstShapes.begin(), ConstShapes.end());
+  llvm::Constant* ShapeVector =
+      llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(ConstShapes));
 
-
-    llvm::Constant* ShapeVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(ConstShapes));
-
-    return ShapeVector;
-
+  return ShapeVector;
 }
 
+llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C) {
+  if (!TensorShape.has_layout()) {
+    return nullptr;
+  }
 
-llvm::Value* GetLayoutVector(const Shape& TensorShape, llvm::LLVMContext* C){
-    if (!TensorShape.has_layout()){
-        return nullptr;
-    }
+  const Layout& L = TensorShape.layout();
 
-    const Layout& L = TensorShape.layout();
+  if (L.format() != DENSE) {
+    return nullptr;
+  }
 
-    if(L.format() != DENSE){
-        return nullptr;
-    }
+  std::vector<llvm::Constant*> LayoutArray;
 
-    std::vector<llvm::Constant*> LayoutArray;
+  llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
+  llvm::Constant* Zero = llvm::ConstantInt::get(I32Ty, 0);
+  llvm::Constant* One = llvm::ConstantInt::get(I32Ty, 1);
 
+  for (auto i : L.minor_to_major()) {
+    LayoutArray.insert(LayoutArray.begin(), llvm::ConstantInt::get(I32Ty, i));
+  }
 
+  if (LayoutArray.size() == 1) {
+    LOG(INFO) << "Represent 1D tensor with degenerated 2D Layout ...";
+    LayoutArray.insert(LayoutArray.begin(), llvm::ConstantInt::get(I32Ty, 1));
+  }
 
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
-    llvm::Constant* Zero =  llvm::ConstantInt::get(I32Ty, 0);
-    llvm::Constant* One =  llvm::ConstantInt::get(I32Ty, 1);
+  llvm::Constant* LayoutVector =
+      llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(LayoutArray));
 
-    for(auto i : L.minor_to_major()){
-        LayoutArray.insert(
-                LayoutArray.begin(),
-                llvm::ConstantInt::get(I32Ty, i)
-                );
-    }
-
-
-
-    if(LayoutArray.size() == 1){
-        LOG(INFO) << "Represent 1D tensor with degenerated 2D Layout ...";
-        LayoutArray.insert(LayoutArray.begin(), 
-                llvm::ConstantInt::get(I32Ty, 1)
-                );
-    }
-
-    llvm::Constant* LayoutVector = llvm::ConstantVector::get(llvm::ArrayRef<llvm::Constant*>(LayoutArray));
-
-    return LayoutVector;
-
+  return LayoutVector;
 }
 
-llvm::Value* Get0PaddingVector(const Shape& TensorShape, llvm::LLVMContext* C){
-    unsigned NumDim = TensorShape.dimensions_size();
+llvm::Value* Get0PaddingVector(const Shape& TensorShape, llvm::LLVMContext* C) {
+  unsigned NumDim = TensorShape.dimensions_size();
 
-    if(NumDim == 1) NumDim++;
+  if (NumDim == 1) NumDim++;
 
+  llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
 
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
+  llvm::ElementCount EC = llvm::ElementCount::getFixed(NumDim);
+  llvm::Constant* PaddingVector =
+      llvm::ConstantVector::getSplat(EC, llvm::ConstantInt::get(I32Ty, 0));
 
-    llvm::ElementCount EC = llvm::ElementCount::getFixed(NumDim);
-    llvm::Constant* PaddingVector = llvm::ConstantVector::getSplat(EC, 
-            llvm::ConstantInt::get(I32Ty, 0));
-
-    return PaddingVector;
-
+  return PaddingVector;
 }
 
+llvm::Value* LoadPtrToVectorTy(llvm::Value* ArrayPtr, llvm::Type* ScalarTy,
+                               int64_t NumElems, llvm::IRBuilder<>* b_) {
+  llvm::VectorType* VecTy = llvm::FixedVectorType::get(ScalarTy, NumElems);
+  unsigned AS =
+      llvm::dyn_cast<llvm::PointerType>(ArrayPtr->getType())->getAddressSpace();
+  llvm::PointerType* VecPtrTy = llvm::PointerType::get(VecTy, AS);
 
-llvm::Value* LoadPtrToVectorTy(llvm::Value* ArrayPtr, llvm::Type* ScalarTy,  int64_t NumElems, llvm::IRBuilder<>* b_){
-    llvm::VectorType*  VecTy = llvm::FixedVectorType::get(ScalarTy, NumElems);
-    unsigned AS = llvm::dyn_cast<llvm::PointerType>(ArrayPtr->getType())->getAddressSpace();
-    llvm::PointerType* VecPtrTy = llvm::PointerType::get(
-            VecTy, AS
-            );
+  llvm::Value* PtrCast = b_->CreatePointerCast(ArrayPtr, VecPtrTy, "vec_cast");
+  llvm::Value* VecLoad = b_->CreateLoad(VecTy, PtrCast, "vec.load");
 
-    llvm::Value* PtrCast = b_->CreatePointerCast(ArrayPtr, VecPtrTy, "vec_cast");
-    llvm::Value* VecLoad = b_->CreateLoad(VecTy, PtrCast, "vec.load");
-
-    return VecLoad;
+  return VecLoad;
 }
 
+llvm::StoreInst* StoreVectorTyToPtr(llvm::Value* Vector, llvm::Value* ArrayPtr,
+                                    llvm::Type* ScalarTy, int64_t NumElems,
+                                    llvm::IRBuilder<>* b_) {
+  LOG(INFO) << "Creating Store vector inst"
+            << "\n";
 
-llvm::StoreInst* StoreVectorTyToPtr(llvm::Value* Vector ,llvm::Value* ArrayPtr, llvm::Type* ScalarTy,  int64_t NumElems, llvm::IRBuilder<>* b_){
+  llvm::VectorType* VecTy = llvm::FixedVectorType::get(ScalarTy, NumElems);
+  unsigned AS =
+      llvm::dyn_cast<llvm::PointerType>(ArrayPtr->getType())->getAddressSpace();
 
-    LOG(INFO) << "Creating Store vector inst" << "\n";
+  LOG(INFO) << "Obtained address space:\t" << AS << "\n";
 
-    llvm::VectorType*  VecTy = llvm::FixedVectorType::get(ScalarTy, NumElems);
-    unsigned AS = llvm::dyn_cast<llvm::PointerType>(ArrayPtr->getType())->getAddressSpace();
+  llvm::PointerType* VecPtrTy = llvm::PointerType::get(VecTy, AS);
 
-    LOG(INFO) << "Obtained address space:\t" << AS<< "\n";
+  llvm::Value* PtrCast =
+      b_->CreatePointerCast(ArrayPtr, VecPtrTy, "vec.store.cast");
 
-    llvm::PointerType* VecPtrTy = llvm::PointerType::get(
-            VecTy, AS
-            );
+  LOG(INFO) << "Obtained Ptrcast, now storing back"
+            << "\n";
+  llvm::StoreInst* VecStore = b_->CreateStore(Vector, PtrCast);
 
-
-
-    llvm::Value* PtrCast = b_->CreatePointerCast(ArrayPtr, VecPtrTy, "vec.store.cast");
-
-    LOG(INFO) << "Obtained Ptrcast, now storing back"<< "\n";
-    llvm::StoreInst* VecStore = b_->CreateStore(Vector, PtrCast);
-
-    return VecStore;
+  return VecStore;
 }
 
+llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs,
+                                 llvm::Type* TargetType,
+                                 llvm::IRBuilder<>* b_) {
+  llvm::Module* M = b_->GetInsertBlock()->getParent()->getParent();
 
+  std::vector<llvm::Type*> MatMulArgsTy = {TargetType};
 
-llvm::CallInst* CreateMatMulCall(llvm::Value* lhs, llvm::Value* rhs, llvm::Type* TargetType , llvm::IRBuilder<>* b_){
+  llvm::Function* MatMulFn = llvm::Intrinsic::getDeclaration(
+      M, llvm::Intrinsic::tensor_matmul,
+      llvm::ArrayRef<llvm::Type*>(MatMulArgsTy));
 
-    llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+  std::vector<llvm::Value*> MatMulArgs = {lhs, rhs};
 
-    std::vector<llvm::Type*> MatMulArgsTy = {TargetType};
+  llvm::CallInst* CI =
+      b_->CreateCall(MatMulFn->getFunctionType(), MatMulFn,
+                     llvm::ArrayRef<llvm::Value*>(MatMulArgs), "llvm_matmul");
 
-    llvm::Function* MatMulFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_matmul, llvm::ArrayRef<llvm::Type*>(MatMulArgsTy) );
-
-
-    std::vector<llvm::Value*> MatMulArgs = {lhs, rhs};
-
-    llvm::CallInst* CI = b_->CreateCall(MatMulFn->getFunctionType(), MatMulFn, llvm::ArrayRef<llvm::Value*>(MatMulArgs), "llvm_matmul");
-
-    return CI;
-
+  return CI;
 }
 
+llvm::CallInst* CreateConvCall(llvm::Value* lhs, llvm::Value* rhs,
+                               llvm::Type* TargetType, llvm::Value* strides,
+                               llvm::Value* lhs_dilations,
+                               llvm::Value* rhs_dilations,
+                               llvm::IRBuilder<>* b_) {
+  llvm::Module* M = b_->GetInsertBlock()->getParent()->getParent();
 
-llvm::CallInst* CreateTensorStoreCall(llvm::Value* Token, llvm::Value* Ptr, llvm::Value* Stride  ,llvm::IRBuilder<>* b_){
+  std::vector<llvm::Type*> ConvArgsTy = {TargetType, strides->getType(),
+                                         lhs_dilations->getType(),
+                                         rhs_dilations->getType()};
 
-    llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+  llvm::Function* ConvFn =
+      llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_convolution,
+                                      llvm::ArrayRef<llvm::Type*>(ConvArgsTy));
 
-    std::vector<llvm::Type*> TensorStoreTy = {Ptr->getType(), Stride->getType()};
+  std::vector<llvm::Value*> ConvArgs = {lhs, rhs, strides, lhs_dilations,
+                                        rhs_dilations};
 
-    llvm::Function* TensorStoreFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_store, llvm::ArrayRef<llvm::Type*>(TensorStoreTy) );
+  llvm::CallInst* CI =
+      b_->CreateCall(ConvFn->getFunctionType(), ConvFn,
+                     llvm::ArrayRef<llvm::Value*>(ConvArgs), "llvm_conv");
 
-
-    std::vector<llvm::Value*> TensorStoreArgs = {Ptr, Stride, Token};
-
-    llvm::CallInst* CI = b_->CreateCall(TensorStoreFn->getFunctionType(), TensorStoreFn, llvm::ArrayRef<llvm::Value*>(TensorStoreArgs), "");
-
-    return CI;
-
+  return CI;
 }
 
+llvm::CallInst* CreateTensorStoreCall(llvm::Value* Token, llvm::Value* Ptr,
+                                      llvm::Value* Stride,
+                                      llvm::IRBuilder<>* b_) {
+  llvm::Module* M = b_->GetInsertBlock()->getParent()->getParent();
 
-llvm::CallInst* CreateTensorLoadCall( llvm::Value* Ptr, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding ,llvm::Value* Stride , llvm::IRBuilder<>* b_){
+  std::vector<llvm::Type*> TensorStoreTy = {Ptr->getType(), Stride->getType()};
 
-    llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+  llvm::Function* TensorStoreFn = llvm::Intrinsic::getDeclaration(
+      M, llvm::Intrinsic::tensor_store,
+      llvm::ArrayRef<llvm::Type*>(TensorStoreTy));
 
-    std::vector<llvm::Type*> TensorLoadTy = {Ptr->getType(), Shape->getType(), Layout->getType(), Padding->getType() , Stride->getType()};
+  std::vector<llvm::Value*> TensorStoreArgs = {Ptr, Stride, Token};
 
-    llvm::Function* TensorLoadFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_load, llvm::ArrayRef<llvm::Type*>(TensorLoadTy) );
+  llvm::CallInst* CI =
+      b_->CreateCall(TensorStoreFn->getFunctionType(), TensorStoreFn,
+                     llvm::ArrayRef<llvm::Value*>(TensorStoreArgs), "");
 
-
-    std::vector<llvm::Value*> TensorLoadArgs = {Ptr, Shape, Layout, Padding, Stride};
-
-    llvm::CallInst* CI = b_->CreateCall(TensorLoadFn->getFunctionType(), TensorLoadFn, llvm::ArrayRef<llvm::Value*>(TensorLoadArgs), "llvm_tensor_load");
-
-    return CI;
-
+  return CI;
 }
 
+llvm::CallInst* CreateTensorLoadCall(llvm::Value* Ptr, llvm::Value* Shape,
+                                     llvm::Value* Layout, llvm::Value* Padding,
+                                     llvm::Value* Stride,
+                                     llvm::IRBuilder<>* b_) {
+  llvm::Module* M = b_->GetInsertBlock()->getParent()->getParent();
 
-llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape, llvm::Value* Layout, llvm::Value* Padding , llvm::IRBuilder<>* b_){
+  std::vector<llvm::Type*> TensorLoadTy = {
+      Ptr->getType(), Shape->getType(), Layout->getType(), Padding->getType(),
+      Stride->getType()};
 
-    llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+  llvm::Function* TensorLoadFn = llvm::Intrinsic::getDeclaration(
+      M, llvm::Intrinsic::tensor_load,
+      llvm::ArrayRef<llvm::Type*>(TensorLoadTy));
 
-    llvm::LLVMContext& Ctx = M->getContext();
-    llvm::Type* I32Ty = llvm::Type::getInt32Ty(Ctx);
+  std::vector<llvm::Value*> TensorLoadArgs = {Ptr, Shape, Layout, Padding,
+                                              Stride};
 
-    llvm::Constant* Mantissa = llvm::ConstantInt::get(I32Ty, MANTISSA);
-    llvm::Constant* Exponent = llvm::ConstantInt::get(I32Ty, EXPONENT);
+  llvm::CallInst* CI = b_->CreateCall(
+      TensorLoadFn->getFunctionType(), TensorLoadFn,
+      llvm::ArrayRef<llvm::Value*>(TensorLoadArgs), "llvm_tensor_load");
 
-    std::vector<llvm::Type*> TypeInfoArgsTy = {Vector->getType(), Shape->getType(), Layout->getType(), Padding->getType()};
-
-    llvm::Function* TypeInfoFn = llvm::Intrinsic::getDeclaration(M, llvm::Intrinsic::tensor_typeinfo, llvm::ArrayRef<llvm::Type*>(TypeInfoArgsTy) );
-
-
-    std::vector<llvm::Value*> TypeInfoArgs = {Vector, Shape, Layout, Padding, Mantissa, Exponent};
-
-    llvm::CallInst* CI = b_->CreateCall(TypeInfoFn->getFunctionType(), TypeInfoFn, llvm::ArrayRef<llvm::Value*>(TypeInfoArgs), "llvm_typeinfo");
-
-    return CI;
-
+  return CI;
 }
 
-}  // namespace llvm_ir
+llvm::CallInst* CreateTypeInfoCall(llvm::Value* Vector, llvm::Value* Shape,
+                                   llvm::Value* Layout, llvm::Value* Padding,
+                                   llvm::IRBuilder<>* b_) {
+  llvm::Module* M = b_->GetInsertBlock()->getParent()->getParent();
+
+  llvm::LLVMContext& Ctx = M->getContext();
+  llvm::Type* I32Ty = llvm::Type::getInt32Ty(Ctx);
+
+  llvm::Constant* Mantissa = llvm::ConstantInt::get(I32Ty, MANTISSA);
+  llvm::Constant* Exponent = llvm::ConstantInt::get(I32Ty, EXPONENT);
+
+  std::vector<llvm::Type*> TypeInfoArgsTy = {
+      Vector->getType(), Shape->getType(), Layout->getType(),
+      Padding->getType()};
+
+  llvm::Function* TypeInfoFn = llvm::Intrinsic::getDeclaration(
+      M, llvm::Intrinsic::tensor_typeinfo,
+      llvm::ArrayRef<llvm::Type*>(TypeInfoArgsTy));
+
+  std::vector<llvm::Value*> TypeInfoArgs = {Vector,  Shape,    Layout,
+                                            Padding, Mantissa, Exponent};
+
+  llvm::CallInst* CI = b_->CreateCall(
+      TypeInfoFn->getFunctionType(), TypeInfoFn,
+      llvm::ArrayRef<llvm::Value*>(TypeInfoArgs), "llvm_typeinfo");
+
+  return CI;
 }
 
+}  // namespace cpu
+}  // namespace xla
 
-#endif // TLX_UTILS_CC
+#endif  // TLX_UTILS_CC
