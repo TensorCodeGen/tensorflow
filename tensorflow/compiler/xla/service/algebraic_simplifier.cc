@@ -84,6 +84,47 @@ bool IsAll(const HloInstruction* op, int8 value) {
   }
 }
 
+
+bool IsAllFP(const HloInstruction* op, float value) {
+    /*
+  switch (op->opcode()) {
+    case HloOpcode::kBroadcast:
+      return IsAllFP(op->operand(0), value);
+    case HloOpcode::kConstant:
+      return op->literal().IsAllFloat(value);
+    default:
+      return false;
+  }*/
+
+  const HloInstruction* c;
+  if (!Match(op, m::ConstantEffectiveScalar(&c)) &&
+      !Match(op, m::Broadcast(m::Constant(&c).WithShape(
+                     m::Shape().IsEffectiveScalar())))) {
+    return false;
+  }
+  auto val = [&]() -> absl::optional<double> {
+    switch (c->shape().element_type()) {
+      case BF16:
+        return static_cast<double>(c->literal().GetFirstElement<bfloat16>());
+      case F16:
+        return static_cast<double>(c->literal().GetFirstElement<Eigen::half>());
+      case F32:
+        return c->literal().GetFirstElement<float>();
+      case F64:
+        return c->literal().GetFirstElement<double>();
+      default:
+        // Cowardly refuse to consider complex types.
+        return absl::nullopt;
+    }
+  }();
+  if (!val) {
+    return false;
+  }
+
+  float v = *val;
+  return (v == value);
+}
+
 bool IsAnyOperandComplex(const HloInstruction* hlo) {
   for (auto operand : hlo->operands()) {
     if (ShapeUtil::ElementIsComplex(operand->shape())) {
@@ -2628,21 +2669,12 @@ Status AlgebraicSimplifierVisitor::HandleMaximum(HloInstruction* maximum) {
   LOG(INFO) << "[AlgebraicSimplifierVisitor] HandleMaximum "<<"\n";
 
 
-  bool EmitTLXRelu = true;
+  bool EmitTLXRelu = false;
 
-  if(EmitTLXRelu){
-      /*
-      llvm_ir::IrArray lhs_array(GetIrArrayFor(lhs));
-      llvm_ir::IrArray rhs_array(GetIrArrayFor(rhs));
-
-
-      llvm_ir::IrArray target_array = GetIrArrayFor(maximum);
-      const Shape& lhs_shape = lhs_array_.GetShape();
-      const Shape& rhs_shape = rhs_array_.GetShape();
-      const Shape& target_shape = target_array_.GetShape();
-
-      CallInst* ReluCall = CreateReluCall();*/
-
+  // TF2XLA generates Relu(x) = Max(0, x)
+  // Hence we check whether the left hand side is
+  // a 0 tensor and return the max operation if so.
+  if(EmitTLXRelu && (IsAll(lhs, 0) || IsAllFP(lhs, 0.0))){
 
       LOG(INFO) << "[AlgebraicSimplifierVisitor] Retaining "<<"\n";
       return Status::OK();

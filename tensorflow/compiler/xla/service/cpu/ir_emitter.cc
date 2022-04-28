@@ -3247,6 +3247,20 @@ Status IrEmitter::ElementTypesSameAndSupported(
   return Status::OK();
 }
 
+
+// Check if an HLO operation is using a 
+// constant tensor 
+static bool IsAll(const HloInstruction* op, int8 value) {
+  switch (op->opcode()) {
+    case HloOpcode::kBroadcast:
+      return IsAll(op->operand(0), value);
+    case HloOpcode::kConstant:
+      return op->literal().IsAll(value);
+    default:
+      return false;
+  }
+}
+
 Status IrEmitter::DefaultAction(HloInstruction* hlo) {
   ElementalIrEmitter::HloToElementGeneratorMap operand_to_generator;
   for (const HloInstruction* operand : hlo->operands()) {
@@ -3257,10 +3271,11 @@ Status IrEmitter::DefaultAction(HloInstruction* hlo) {
 
   CpuElementalIrEmitter elemental_emitter(hlo_module_config_, this, module_);
 
-  bool EmitTLXRelu = false;
+  bool EmitTLXRelu = true;
   bool EmitTLXTanh = true;
 
-  if (EmitTLXRelu && hlo->opcode() == HloOpcode::kMaximum) {
+  if (EmitTLXRelu && hlo->opcode() == HloOpcode::kMaximum
+          && IsAll(hlo->operand(0), 0) ) {
     LOG(INFO) << "[Elemental IR Emitter]\t"
               << "Emitting Max (i.e. RELU) with TLX";
 
