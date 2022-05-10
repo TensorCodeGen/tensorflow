@@ -66,6 +66,13 @@ llvm::CallInst* CreateTensorLoadCall(llvm::Value* Ptr, llvm::Value* Shape,
                                      llvm::Value* Stride,
                                      llvm::IRBuilder<>* b_);
 
+llvm::Value* CastInputToFloat(llvm::Value* Input, llvm::IRBuilder<>* b_);
+
+
+llvm::Value* ConvertFloatToType(llvm::Value* Input, llvm::Type* ElemTy , llvm::IRBuilder<>* b_);
+
+llvm::Constant* GetConstantValue(llvm::LLVMContext & Ctx, llvm::Type* Ty, int64_t Val);
+
 }  // namespace cpu
 }  // namespace xla
 

@@ -30,11 +30,8 @@ namespace xla {
     namespace cpu {
 
 
-        llvm::CallInst* CreateTanhCall(llvm::CallInst* SourceTypeInfo, llvm::VectorType* TargetVecTy, llvm::IRBuilder<>* b_);
+        llvm::CallInst* CreateMapCall(llvm::CallInst* SourceTypeInfo, llvm::Function* ElementalFunction , llvm::VectorType* TargetVecTy, llvm::IRBuilder<>* b_);
 
-        void EmitTLXTanh_Helper(const llvm_ir::IrArray& source_array_, const llvm_ir::IrArray& target_array_, llvm::IRBuilder<>* b_);
-
-        llvm::Function* CreateTanhElementFunction(llvm::Type* ElemTy, llvm::IRBuilder<>* b_);
 
 
     }  // namespace llvm_ir
