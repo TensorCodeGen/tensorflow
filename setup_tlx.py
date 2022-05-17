@@ -104,7 +104,6 @@ def build_tensorflow(tlx_dir_root):
     tf_deps_cmd = [
         "pip",
         "install",
-        "numpy",
         "wheel",
         "packaging",
         "keras_preprocessing",
@@ -153,7 +152,7 @@ def build_tensorflow(tlx_dir_root):
 
 
     print("Unnstalling Tensorflow Pip Package ...")
-    pip_uninstall_cmd = ["pip3", "uninstall", "tensorflow"]
+    pip_uninstall_cmd = ["pip3", "uninstall", "-y", "tensorflow"]
     pip_uninstall_cmd = " ".join(pip_uninstall_cmd)
 
     execute(pip_uninstall_cmd)
@@ -163,6 +162,15 @@ def build_tensorflow(tlx_dir_root):
     pip_install_cmd = " ".join(pip_install_cmd)
 
     execute(pip_install_cmd)
+
+
+    numpy_cmd = [
+        "pip",
+        "install",
+        "numpy==1.22.3",
+    ]
+    numpy_cmd = " ".join(numpy_cmd)
+    execute(numpy_cmd)
 
 
 def main():
