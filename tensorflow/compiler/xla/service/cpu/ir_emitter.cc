@@ -83,6 +83,7 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/tlx/tlx_relu_emitter.h"
 #include "tensorflow/compiler/xla/service/tlx/tlx_tanh_emitter.h"
 #include "tensorflow/compiler/xla/service/tlx/tlx_conv_emitter.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_binary_op_emitter.h"
 
 
 namespace xla {
@@ -3271,8 +3272,38 @@ Status IrEmitter::DefaultAction(HloInstruction* hlo) {
 
   CpuElementalIrEmitter elemental_emitter(hlo_module_config_, this, module_);
 
+  /*  ================== TLX ================== */
   bool EmitTLXRelu = true;
   bool EmitTLXTanh = true;
+  bool EmitTLXBOp = true;
+
+
+  if (EmitTLXBOp && TLXSupportsBinaryOp(hlo)){
+    LOG(INFO) << "[Elemental IR Emitter]\t"
+              << "Emitting Binary Op with TLX";
+
+    const HloInstruction* lhs = hlo->operand(0);
+    const HloInstruction* rhs = hlo->operand(1);
+    const HloInstruction* target = hlo;
+
+
+    LOG(INFO) << "Getting IR Array's for Binary OP operands" << "\n";
+    llvm_ir::IrArray lhs_array(GetIrArrayFor(lhs));
+    llvm_ir::IrArray rhs_array(GetIrArrayFor(rhs));
+    
+    LOG(INFO) << "Getting IR Array's for Binary Op target" << "\n";
+
+    TF_RETURN_IF_ERROR(EmitTargetAddressForOp(target));
+    llvm_ir::IrArray target_array(GetIrArrayFor(target));
+
+
+
+    EmitTLXBinaryOp(hlo, lhs_array, rhs_array, target_array, 
+            b());
+
+    return Status::OK();
+
+  }
 
   if (EmitTLXRelu && hlo->opcode() == HloOpcode::kMaximum
           && IsAll(hlo->operand(0), 0) ) {
@@ -3314,7 +3345,9 @@ Status IrEmitter::DefaultAction(HloInstruction* hlo) {
               << "Got target array ... ";
     EmitTLXTanh_Helper(source_array, target_array, b());
     return Status::OK();
+
   }
+  /*  ========================================= */
 
   return EmitTargetElementLoop(
       hlo, elemental_emitter.MakeElementGenerator(hlo, operand_to_generator));

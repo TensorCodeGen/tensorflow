@@ -1,5 +1,3 @@
-
-
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IRBuilder.h"
@@ -30,9 +28,26 @@
 namespace xla {
     namespace cpu {
 
+        bool TLXSupportsBinaryOp(HloInstruction* hlo){
+
+            switch(hlo->opcode()){
+                case HloOpcode::kAdd:
+                case HloOpcode::kSubtract:
+                case HloOpcode::kMultiply:
+                case HloOpcode::kShiftLeft:
+                case HloOpcode::kShiftRightArithmetic:
+                case HloOpcode::kShiftRightLogical:
+                    return true;
+                default:
+                    return false;
+            }
+
+
+        }
 
 
         void EmitTLXBinaryOp(HloInstruction* hlo, const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrArray& rhs_array_,  const llvm_ir::IrArray& target_array_, llvm::IRBuilder<>* b_){
+
 
             LOG(INFO) << "[TLX]\t" << "EmitTLXBinaryOp"<<"\n";
 
@@ -51,6 +66,10 @@ namespace xla {
             llvm::Type* RightElemType = rhs_array_.GetElementLlvmType();
             llvm::Type* TargetElemType = target_array_.GetElementLlvmType();
 
+            assert(LeftElemType && "Unspecified element type for lhs array");
+            assert(RightElemType && "Unspecified element type for rhs array");
+            assert(TargetElemType && "Unspecified element type for target array");
+
 
             llvm::LLVMContext & C = target_ptr->getContext();
 
@@ -66,14 +85,26 @@ namespace xla {
             LOG(INFO) <<  "num_target_values:\t" << num_target_values <<"\n";
 
 
-            auto InsertPoint = b_ -> saveIP();
+            assert(b_ && "IRBuilder pointer should be non-null");
+            //auto InsertPoint = b_ -> saveIP();
 
 
+            assert(lhs_ptr && "Expected a pointer for the lhs array");
+            assert(llvm::isa<llvm::Instruction>(lhs_ptr) && "Expected the lhs pointer to be a LLVM  Instruction");
 
-            b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_ptr) -> getNextNode());
+
+            LOG(INFO) << "Loading lhs vector";
+            //b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_ptr) -> getNextNode());
             llvm::Value* lhs_vector = LoadPtrToVectorTy(lhs_ptr, LeftElemType, num_lhs_values, b_ );
 
-            b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_ptr) -> getNextNode());
+
+
+            assert(rhs_ptr && "Expected a pointer for the rhs array");
+            assert(llvm::isa<llvm::Instruction>(rhs_ptr) && "Expected the rhs pointer to be a LLVM  Instruction");
+
+            LOG(INFO) << "Loading rhs vector";
+
+
             llvm::Value* rhs_vector = LoadPtrToVectorTy(rhs_ptr, RightElemType , num_rhs_values, b_ );
 
 
@@ -102,16 +133,16 @@ namespace xla {
             llvm::Value* target_padding = Get0PaddingVector(target_shape, &C);
 
 
-            b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_vector) -> getNextNode());
+            //b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(lhs_vector) -> getNextNode());
             llvm::CallInst* lhs_type_info = CreateTypeInfoCall(lhs_vector, tlx_lhs_shape, lhs_layout, lhs_padding, b_);
 
 
-            b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_vector) -> getNextNode());
+            //b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(rhs_vector) -> getNextNode());
             llvm::CallInst* rhs_type_info = CreateTypeInfoCall(rhs_vector, tlx_rhs_shape, rhs_layout, rhs_padding, b_);
 
 
 
-            b_ ->restoreIP(InsertPoint);
+            //b_ ->restoreIP(InsertPoint);
 
             llvm::Value* Result = nullptr;
 
@@ -147,7 +178,7 @@ namespace xla {
                     Result = b_->CreateLShr(lhs_vector, rhs_vector, "tensor_lshr");
                     break;
                 default:
-                    assert(false, "Unsupported binary op");
+                    assert(false && "Unsupported binary op");
                     break;
             }
 

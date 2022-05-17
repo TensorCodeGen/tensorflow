@@ -31,6 +31,8 @@ namespace xla {
 
 
 
+        bool TLXSupportsBinaryOp(HloInstruction* hlo);
+
         void EmitTLXBinaryOp(HloInstruction* hlo, const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrArray& rhs_array_,  const llvm_ir::IrArray& target_array_, llvm::IRBuilder<>* b_);
 
 

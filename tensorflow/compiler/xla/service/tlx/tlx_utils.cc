@@ -50,8 +50,8 @@ namespace xla {
                 ConstShapes.push_back(llvm::ConstantInt::get(I32Ty, i));
             }
 
-            if (ConstShapes.size() == 1) {
-                LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
+            if (ConstShapes.size() <= 1) {
+                LOG(INFO) << "Represent < 2D tensor with degenerated 2D Shape ...";
                 ConstShapes.insert(ConstShapes.begin(), llvm::ConstantInt::get(I32Ty, 1));
             }
 
@@ -73,7 +73,7 @@ namespace xla {
                 ConstShapes.push_back(llvm::ConstantInt::get(I32Ty, i));
             }
 
-            if (ConstShapes.size() == 1) {
+            if (ConstShapes.size() <= 1) {
                 LOG(INFO) << "Represent 1D tensor with degenerated 2D Shape ...";
                 ConstShapes.insert(ConstShapes.begin(), llvm::ConstantInt::get(I32Ty, 1));
             }
@@ -107,8 +107,8 @@ namespace xla {
                 LayoutArray.insert(LayoutArray.begin(), llvm::ConstantInt::get(I32Ty, i));
             }
 
-            if (LayoutArray.size() == 1) {
-                LOG(INFO) << "Represent 1D tensor with degenerated 2D Layout ...";
+            if (LayoutArray.size() <= 1) {
+                LOG(INFO) << "Represent <= 1D tensor with degenerated 2D Layout ...";
                 LayoutArray.insert(LayoutArray.begin(), llvm::ConstantInt::get(I32Ty, 1));
             }
 
@@ -121,7 +121,7 @@ namespace xla {
         llvm::Value* Get0PaddingVector(const Shape& TensorShape, llvm::LLVMContext* C) {
             unsigned NumDim = TensorShape.dimensions_size();
 
-            if (NumDim == 1) NumDim++;
+            if (NumDim <= 1) NumDim++;
 
             llvm::Type* I32Ty = llvm::Type::getInt32Ty(*C);
 
@@ -134,10 +134,16 @@ namespace xla {
 
         llvm::Value* LoadPtrToVectorTy(llvm::Value* ArrayPtr, llvm::Type* ScalarTy,
                 int64_t NumElems, llvm::IRBuilder<>* b_) {
+            LOG(INFO) << "LoadPtrToVectorTy";
+
             llvm::VectorType* VecTy = llvm::FixedVectorType::get(ScalarTy, NumElems);
+            assert(ArrayPtr && "Must provide buffer to load vector from");
             unsigned AS =
                 llvm::dyn_cast<llvm::PointerType>(ArrayPtr->getType())->getAddressSpace();
             llvm::PointerType* VecPtrTy = llvm::PointerType::get(VecTy, AS);
+
+            assert(VecPtrTy && "VecPtrTy is NULL");
+
 
             llvm::Value* PtrCast = b_->CreatePointerCast(ArrayPtr, VecPtrTy, "vec_cast");
             llvm::Value* VecLoad = b_->CreateLoad(VecTy, PtrCast, "vec.load");
