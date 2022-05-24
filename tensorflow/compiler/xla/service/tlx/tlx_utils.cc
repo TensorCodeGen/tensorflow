@@ -358,6 +358,25 @@ namespace xla {
             return nullptr;
         }
 
+
+        llvm::Constant* GetConstantValueFloat(llvm::LLVMContext & Ctx, llvm::Type* Ty, float Val){
+
+            switch (Ty->getTypeID()) {
+                case llvm::Type::IntegerTyID:
+                    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Ctx), (int)Val);
+                case llvm::Type::FloatTyID:
+                    return llvm::ConstantFP::get(llvm::Type::getFloatTy(Ctx), (float)Val);
+                case llvm::Type::DoubleTyID:
+                    return llvm::ConstantFP::get(llvm::Type::getDoubleTy(Ctx), (double)Val);
+                case llvm::Type::HalfTyID:
+                case llvm::Type::BFloatTyID:
+                default:
+                    assert(false && "Invalid element type.");
+
+            }
+            return nullptr;
+        }
+
     }  // namespace cpu
 }  // namespace xla
 

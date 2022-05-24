@@ -73,6 +73,9 @@ llvm::Value* ConvertFloatToType(llvm::Value* Input, llvm::Type* ElemTy , llvm::I
 
 llvm::Constant* GetConstantValue(llvm::LLVMContext & Ctx, llvm::Type* Ty, int64_t Val);
 
+
+llvm::Constant* GetConstantValueFloat(llvm::LLVMContext & Ctx, llvm::Type* Ty, float Val);
+
 }  // namespace cpu
 }  // namespace xla
 

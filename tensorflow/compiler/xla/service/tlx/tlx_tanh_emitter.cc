@@ -21,12 +21,23 @@ namespace xla {
 
         llvm::Function* CreateTanhElementFunction(llvm::Type* ElemTy, llvm::IRBuilder<>* b_){
 
+            llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+
+            // If function already defined with the given type then return this existing 
+            // function
+
+            if(llvm::Function* tlx_tanh = M->getFunction("tlx_tanh")){
+                llvm::Value* Input = &*tlx_tanh->arg_begin();
+                if(Input->getType() == ElemTy){
+                    return tlx_tanh;
+                }
+            }
+
             // As we're creating a new function, 
             // the insert point of the IR Builder
             // would be moved hence we save it.
             auto InsertPoint = b_ -> saveIP();
 
-            llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
 
             llvm::LLVMContext& Ctx = M->getContext();
 
@@ -152,6 +163,7 @@ namespace xla {
             llvm::CallInst* Tanh_vector = nullptr;
             if(use_tlx_map){
                 llvm::Function* TanH = CreateTanhElementFunction(SourceElemType, b_);
+
                 Tanh_vector = CreateMapCall(source_type_info, TanH, TargetVecTy, b_);
 
             } else {

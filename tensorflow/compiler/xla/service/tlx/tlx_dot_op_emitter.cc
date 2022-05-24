@@ -10,16 +10,17 @@
 
 
 #include "tensorflow/compiler/xla/service/tlx/tlx_dot_op_emitter.h"
+
 #include "tensorflow/compiler/xla/service/tlx/tlx_transpose_emitter.h"
 #include "tensorflow/core/platform/logging.h"
 
 
+// TEMP
+#include "tensorflow/compiler/xla/service/tlx/tlx_gelu_emitter.h"
 
 
 namespace xla {
     namespace cpu {
-
-
 
 
         // Implements A x (B^T)
@@ -42,6 +43,9 @@ namespace xla {
             llvm::Type* RightElemType = rhs_array_.GetElementLlvmType();
             llvm::Type* TargetElemType = target_array_.GetElementLlvmType();
 
+            //TEMP
+
+            llvm::Function* Gelu = CreateApproximateGeluElementFunction(LeftElemType, b_);
 
             llvm::LLVMContext & C = target_ptr->getContext();
 
