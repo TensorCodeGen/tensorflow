@@ -1,5 +1,3 @@
-
-
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -17,6 +15,7 @@
 
 // TEMP
 #include "tensorflow/compiler/xla/service/tlx/tlx_gelu_emitter.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_pattern_matcher.h"
 
 
 namespace xla {
