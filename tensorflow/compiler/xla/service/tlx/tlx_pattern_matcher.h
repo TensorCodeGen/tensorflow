@@ -19,6 +19,11 @@
 
 #include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
 
+
+#ifndef TENSORFLOW_COMPILER_XLA_SERVICE_TLX_PATTERN_MATCHER_H_
+#define TENSORFLOW_COMPILER_XLA_SERVICE_TLX_PATTERN_MATCHER_H_
+
+
 namespace xla {
 
     struct GeluMatch {
@@ -33,3 +38,4 @@ namespace xla {
 
 }
 
+#endif

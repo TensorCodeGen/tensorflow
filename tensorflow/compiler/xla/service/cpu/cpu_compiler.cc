@@ -135,6 +135,9 @@ limitations under the License.
 #include "tensorflow/compiler/xla/xla_data.pb.h"
 #include "tensorflow/core/platform/dynamic_annotations.h"
 
+// TLX Imports
+#include "tensorflow/compiler/xla/service/tlx/tlx_op_rewriter.h"
+
 namespace {
 
 // We need to explicitly load all the dialects we will involved in emitting the
@@ -415,6 +418,11 @@ Status CpuCompiler::RunHloPassesThroughLayoutAssn(
 
   /* TEMP Disable instruction fusion */
   // pipeline.AddPass<CpuInstructionFusion>();
+  //
+  
+
+  // TLX HLO passes
+  pipeline.AddPass<TLXGeluRewriter>();
 
   return pipeline.Run(module).status();
 }

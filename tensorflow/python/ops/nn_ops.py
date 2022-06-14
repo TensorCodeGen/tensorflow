@@ -3623,7 +3623,7 @@ def leaky_relu(features, alpha=0.2, name=None):
 
 @tf_export("nn.gelu", v1=[])
 @dispatch.add_dispatch_support
-def gelu(features, approximate=False, name=None):
+def gelu(features, approximate=True, name=None):
   """Compute the Gaussian Error Linear Unit (GELU) activation function.
 
   Gaussian error linear unit (GELU) computes
@@ -3655,6 +3655,8 @@ def gelu(features, approximate=False, name=None):
   References:
     [Gaussian Error Linear Units (GELUs)](https://arxiv.org/abs/1606.08415).
   """
+
+  approximate = True
   with ops.name_scope(name, "Gelu", [features]):
     features = ops.convert_to_tensor(features, name="features")
     if approximate:
