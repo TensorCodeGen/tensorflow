@@ -121,5 +121,80 @@ namespace xla {
         }
 
 
+        void EmitTLXGelu_Helper(const llvm_ir::IrArray& source_array_, const llvm_ir::IrArray& target_array_, llvm::IRBuilder<>* b_){
+
+
+            LOG(INFO) << "[TLX]\t" << "Emit TLX Gelu Helper"<<"\n";
+
+
+            llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+
+            llvm::LLVMContext& C = M->getContext();
+
+
+            const Shape& source_shape = source_array_.GetShape();
+            const Shape& target_shape = target_array_.GetShape();
+
+
+
+            llvm::Type* SourceElemType = source_array_.GetElementLlvmType();
+            llvm::Type* TargetElemType = target_array_.GetElementLlvmType();
+
+            int64_t num_source_values = GetNumElements(source_shape);
+            int64_t num_target_values = GetNumElements(target_shape);;
+
+
+            auto InsertPoint = b_ -> saveIP();
+
+
+            llvm::Value* source_ptr = source_array_.GetBasePointer();
+            llvm::Value* target_ptr = target_array_.GetBasePointer();
+
+
+            b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(source_ptr) -> getNextNode());
+            llvm::Value* source_vector = LoadPtrToVectorTy(source_ptr, SourceElemType, num_source_values, b_ );
+
+
+            llvm::Value* tlx_source_shape = GetShapeVector(source_shape, &C);
+
+
+            llvm::Value* tlx_source_layout = GetLayoutVector(source_shape, &C);
+
+
+            llvm::Value* tlx_source_padding = Get0PaddingVector(source_shape, &C);
+
+
+            b_ -> SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(source_vector) -> getNextNode());
+            llvm::CallInst* source_type_info = CreateTypeInfoCall(source_vector, tlx_source_shape, tlx_source_layout, tlx_source_padding, b_);
+
+
+            b_ ->restoreIP(InsertPoint);
+
+
+            llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
+
+
+            llvm::Function* Gelu = CreateApproximateGeluElementFunction(SourceElemType, b_);
+
+            llvm::Value* Gelu_vector = CreateMapCall(source_type_info, Gelu, TargetVecTy, b_);
+
+
+            LOG(INFO) << "[TLX]\t" << "Create tensor gelu typeinfo call"<<"\n";
+
+            llvm::CallInst* target_type_info = CreateTypeInfoCall(Gelu_vector, tlx_source_shape, tlx_source_layout, tlx_source_padding, b_);
+
+
+            LOG(INFO) << "[TLX]\t" << "Create store back for result"<<"\n";
+
+
+            llvm::StoreInst* StoreResult = StoreVectorTyToPtr(Gelu_vector, target_ptr, TargetElemType, num_target_values , b_ );
+
+
+
+            LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Gelu "<<"\n";
+
+        }
+
+
     }
 }

@@ -27,6 +27,7 @@
 namespace xla {
     namespace cpu {
 
+        void EmitTLXGelu_Helper(const llvm_ir::IrArray& source_array_, const llvm_ir::IrArray& target_array_, llvm::IRBuilder<>* b_);
 
         llvm::Function* CreateApproximateGeluElementFunction(llvm::Type* ElemTy, llvm::IRBuilder<>* b_);
 

@@ -82,8 +82,6 @@ cc_library(
         "//tensorflow/compiler/xla/service/llvm_ir:llvm_loop",
         "//tensorflow/compiler/xla/service/llvm_ir:llvm_util",
         "//tensorflow/core:lib",
-        "//tensorflow/compiler/xla/service/tlx:tlx_gelu_emitter",
-        "//tensorflow/compiler/xla/service/tlx:tlx_pattern_matcher",
         "//tensorflow/compiler/xla/service/tlx:tlx_utils",
         "@com_google_absl//absl/strings",
         "@llvm-project//llvm:Core",

@@ -81,6 +81,7 @@ limitations under the License.
 
 // TLX Imports
 #include "tensorflow/compiler/xla/service/tlx/tlx_relu_emitter.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_gelu_emitter.h"
 #include "tensorflow/compiler/xla/service/tlx/tlx_tanh_emitter.h"
 #include "tensorflow/compiler/xla/service/tlx/tlx_conv_emitter.h"
 #include "tensorflow/compiler/xla/service/tlx/tlx_binary_op_emitter.h"
@@ -2279,6 +2280,21 @@ Status IrEmitter::HandlePadToStatic(HloInstruction* hlo) {
   return Status::OK();
 }
 
+
+Status IrEmitter::HandleGelu(HloInstruction* hlo) {
+  TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
+  const HloInstruction* input = hlo->operand(0);
+  
+  llvm_ir::IrArray source_array(GetIrArrayFor(input));
+  llvm_ir::IrArray target_array(GetIrArrayFor(hlo));
+
+  EmitTLXGelu_Helper(source_array, target_array, b());
+
+
+  return Status::OK();
+}
+
+
 Status IrEmitter::HandleTopK(HloInstruction* hlo) {
   TF_RETURN_IF_ERROR(EmitTargetAddressForOp(hlo));
   const HloInstruction* input = hlo->operand(0);
@@ -2328,6 +2344,12 @@ Status IrEmitter::HandleCustomCall(HloInstruction* custom_call) {
   if (custom_call->custom_call_target() == "TopK") {
     return HandleTopK(custom_call);
   }
+
+  if (custom_call->custom_call_target() == "tlx_gelu") {
+      LOG(INFO) << "Handle GELU Call!" << "\n";
+      return HandleGelu(custom_call);
+  }
+
   absl::Span<HloInstruction* const> operands(custom_call->operands());
   llvm::Type* i8_ptr_type = b_.getInt8PtrTy();
   llvm::AllocaInst* operands_alloca =

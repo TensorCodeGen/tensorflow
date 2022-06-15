@@ -13,13 +13,28 @@ namespace xla {
                 GeluInfo[instruction] = GM;
             }
 
-            return false;
+            return true;
         }
 
         StatusOr<HloInstruction*> TLXGeluRewriter::ExpandInstruction(
                 HloInstruction* instruction
                 ){
-            return nullptr;
+            if(GeluInfo.find(instruction) == GeluInfo.end()) return nullptr;
+
+            GeluMatch* GM = GeluInfo[instruction];
+
+            LOG(INFO) << "[ TLX ]" << " Replacing Gelu expression tree with Gelu call";
+
+            HloInstruction* GeluInput = GM->GeluInput;
+
+
+            auto* computation = instruction->parent();
+
+            return computation->AddInstruction(
+                HloInstruction::CreateCustomCall(/*shape=*/ GeluInput->shape(), /* operands=*/ {GeluInput}, /*target=*/ "tlx_gelu")
+                    );
+
+
         }
     }
 }  // namespace xla
