@@ -28,7 +28,10 @@ namespace xla {
     namespace cpu {
 
 
+        llvm::Function* CreateBinaryOpElementFunction(llvm::Type* ElemTy,
+                HloInstruction* hlo, llvm::IRBuilder<>* b_);
 
+        std::string GetUniqueBinOpName(llvm::Type* ElemTy, HloInstruction* hlo);
         bool TLXSupportsBinaryOp(HloInstruction* hlo);
 
         void EmitTLXBinaryOp(HloInstruction* hlo, const llvm_ir::IrArray& lhs_array_, const llvm_ir::IrArray& rhs_array_,  const llvm_ir::IrArray& target_array_, llvm::IRBuilder<>* b_);

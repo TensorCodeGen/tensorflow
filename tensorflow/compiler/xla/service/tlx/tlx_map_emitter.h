@@ -32,6 +32,8 @@ namespace xla {
 
         llvm::CallInst* CreateMapCall(llvm::CallInst* SourceTypeInfo, llvm::Function* ElementalFunction , llvm::VectorType* TargetVecTy, llvm::IRBuilder<>* b_);
 
+        llvm::CallInst* CreateGeneralMapCall(std::vector<llvm::CallInst*> SourceTypeInfos, llvm::Function* ElementalFunction , llvm::VectorType* TargetVecTy, llvm::IRBuilder<>* b_);
+
 
 
     }  // namespace llvm_ir

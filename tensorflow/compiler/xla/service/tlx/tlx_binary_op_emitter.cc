@@ -10,6 +10,7 @@
 
 #include "tensorflow/compiler/xla/service/tlx/tlx_utils.h"
 #include "tensorflow/compiler/xla/service/tlx/tlx_binary_op_emitter.h"
+#include "tensorflow/compiler/xla/service/tlx/tlx_map_emitter.h"
 
 
 #include "tensorflow/compiler/xla/service/hlo_casting_utils.h"
@@ -85,6 +86,9 @@ namespace xla {
             LOG(INFO) <<  "num_target_values:\t" << num_target_values <<"\n";
 
 
+            llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
+
+
             assert(b_ && "IRBuilder pointer should be non-null");
             //auto InsertPoint = b_ -> saveIP();
 
@@ -146,41 +150,52 @@ namespace xla {
 
             llvm::Value* Result = nullptr;
 
-            switch(hlo->opcode()){
-                case HloOpcode::kAdd:
-                    if(TargetElemType->isFloatTy()){
-                        Result = b_->CreateFAdd(lhs_vector, rhs_vector, "tensor_fadd");
-                    } else {
-                        Result = b_->CreateAdd(lhs_vector, rhs_vector, "tensor_iadd");
-                    }
-                    break;
-                case HloOpcode::kSubtract:
-                    if(TargetElemType->isFloatTy()){
-                        Result = b_->CreateFSub(lhs_vector, rhs_vector, "tensor_fsub");
-                    } else {
-                        Result = b_->CreateSub(lhs_vector, rhs_vector, "tensor_isub");
-                    }
-                    break;
-                case HloOpcode::kMultiply:
-                    if(TargetElemType->isFloatTy()){
-                        Result = b_->CreateFMul(lhs_vector, rhs_vector, "tensor_fmul");
-                    } else {
-                        Result = b_->CreateMul(lhs_vector, rhs_vector, "tensor_imul");
-                    }
-                    break;
-                case HloOpcode::kShiftLeft:
-                    Result = b_->CreateShl(lhs_vector, rhs_vector, "tensor_shl");
-                    break;
-                case HloOpcode::kShiftRightArithmetic:
-                    Result = b_->CreateAShr(lhs_vector, rhs_vector, "tensor_ashr");
-                    break;
-                case HloOpcode::kShiftRightLogical:
-                    Result = b_->CreateLShr(lhs_vector, rhs_vector, "tensor_lshr");
-                    break;
-                default:
-                    assert(false && "Unsupported binary op");
-                    break;
-            }
+            bool use_map = true;
+            bool is_scalar = (num_target_values == 1);
+
+            if(use_map && !is_scalar) {
+                llvm::Function* binop_fn = CreateBinaryOpElementFunction(TargetElemType, hlo, b_);
+                std::vector<llvm::CallInst*> source_typeinfos = {lhs_type_info, rhs_type_info};
+                llvm::CallInst* binop_map_call = CreateGeneralMapCall(source_typeinfos, binop_fn, TargetVecTy, b_);
+                Result = (llvm::Value*) binop_map_call;
+            } else {
+                switch(hlo->opcode()){
+                    case HloOpcode::kAdd:
+                        if(TargetElemType->isFloatTy()){
+                            Result = b_->CreateFAdd(lhs_vector, rhs_vector, "tensor_fadd");
+                        } else {
+                            Result = b_->CreateAdd(lhs_vector, rhs_vector, "tensor_iadd");
+                        }
+                        break;
+                    case HloOpcode::kSubtract:
+                        if(TargetElemType->isFloatTy()){
+                            Result = b_->CreateFSub(lhs_vector, rhs_vector, "tensor_fsub");
+                        } else {
+                            Result = b_->CreateSub(lhs_vector, rhs_vector, "tensor_isub");
+                        }
+                        break;
+                    case HloOpcode::kMultiply:
+                        if(TargetElemType->isFloatTy()){
+                            Result = b_->CreateFMul(lhs_vector, rhs_vector, "tensor_fmul");
+                        } else {
+                            Result = b_->CreateMul(lhs_vector, rhs_vector, "tensor_imul");
+                        }
+                        break;
+                    case HloOpcode::kShiftLeft:
+                        Result = b_->CreateShl(lhs_vector, rhs_vector, "tensor_shl");
+                        break;
+                    case HloOpcode::kShiftRightArithmetic:
+                        Result = b_->CreateAShr(lhs_vector, rhs_vector, "tensor_ashr");
+                        break;
+                    case HloOpcode::kShiftRightLogical:
+                        Result = b_->CreateLShr(lhs_vector, rhs_vector, "tensor_lshr");
+                        break;
+                    default:
+                        assert(false && "Unsupported binary op");
+                        break;
+                }
+            } 
+
 
             llvm::CallInst* target_type_info = CreateTypeInfoCall(Result, tlx_target_shape, target_layout, target_padding, b_);
 
@@ -198,6 +213,149 @@ namespace xla {
 
             LOG(INFO) << "[TLX]\t" << "Completed generation of TLX Binary Op "<<"\n";
 
+        }
+
+        std::string GetUniqueBinOpName(llvm::Type* ElemTy, HloInstruction* hlo){
+            std::string name = "tlx_";
+
+            if(ElemTy->isFloatingPointTy()){
+                name += "fp_";
+            } else if(ElemTy->isIntegerTy()){
+                name += "int_";
+            } else {
+                name += "ty_";
+            }
+
+            name += "binary_";
+
+            switch(hlo->opcode()){
+                case HloOpcode::kAdd:
+                    name += "add";
+                    break;
+                case HloOpcode::kSubtract:
+                    name += "sub";
+                    break;
+                case HloOpcode::kMultiply:
+                    name += "mul";
+                    break;
+                case HloOpcode::kShiftLeft:
+                    name += "shl";
+                    break;
+                case HloOpcode::kShiftRightArithmetic:
+                    name += "ashr";
+                    break;
+                case HloOpcode::kShiftRightLogical:
+                    name += "lshr";
+                    break;
+                default:
+                    name += "unknown";
+            }
+
+            return name;
+
+
+        }
+
+        llvm::Function* CreateBinaryOpElementFunction(llvm::Type* ElemTy,
+                HloInstruction* hlo, llvm::IRBuilder<>* b_){
+
+            llvm::Module* M= b_->GetInsertBlock()->getParent()->getParent();
+
+
+            std::string fn_name = GetUniqueBinOpName(ElemTy, hlo);
+
+            // If function already defined with the given type then return this existing 
+            // function
+            if(llvm::Function* Fn = M->getFunction(fn_name)){
+                return Fn;
+            }
+
+
+            // As we're creating a new function, 
+            // the insert point of the IR Builder
+            // would be moved hence we save it.
+            auto InsertPoint = b_ -> saveIP();
+
+            std::vector<llvm::Type*> FnArgsTy;
+            for(int i = 0; i < 2; i++){
+                FnArgsTy.push_back(ElemTy);
+            }
+
+            llvm::LLVMContext& Ctx = M->getContext();
+
+            llvm::FunctionType* FT = llvm::FunctionType::get(ElemTy, llvm::ArrayRef<llvm::Type*>(FnArgsTy), false);
+
+            llvm::FunctionCallee binop_fun =  M->getOrInsertFunction(fn_name, FT);
+
+
+
+
+            // Set defult calling convention. Should we set this to be Fast instead?
+            llvm::Function* binop = llvm::cast<llvm::Function>(binop_fun.getCallee());
+            binop->setCallingConv(llvm::CallingConv::C);
+
+            binop->addFnAttr(llvm::Attribute::AttrKind::NoInline);
+
+
+            llvm::Value* Input1 = &*binop->arg_begin();
+            Input1->setName("input1");
+
+            llvm::Value* Input2 = &*(binop->arg_begin()+1);
+            Input2->setName("input2");
+
+            llvm::BasicBlock* EntryBB = llvm::BasicBlock::Create(Ctx, "entry", binop);
+
+            b_->SetInsertPoint(EntryBB);
+
+            llvm::Value* Result = nullptr;
+
+            switch(hlo->opcode()){
+                case HloOpcode::kAdd:
+                    if(ElemTy->isFloatTy()){
+                        Result = b_->CreateFAdd(Input1, Input2, "tensor_fadd");
+                    } else {
+                        Result = b_->CreateAdd(Input1, Input2, "tensor_iadd");
+                    }
+                    break;
+                case HloOpcode::kSubtract:
+                    if(ElemTy->isFloatTy()){
+                        Result = b_->CreateFSub(Input1, Input2, "tensor_fsub");
+                    } else {
+                        Result = b_->CreateSub(Input1, Input2, "tensor_isub");
+                    }
+                    break;
+                case HloOpcode::kMultiply:
+                    if(ElemTy->isFloatTy()){
+                        Result = b_->CreateFMul(Input1, Input2, "tensor_fmul");
+                    } else {
+                        Result = b_->CreateMul(Input1, Input2, "tensor_imul");
+                    }
+                    break;
+                case HloOpcode::kShiftLeft:
+                    Result = b_->CreateShl(Input1, Input2, "tensor_shl");
+                    break;
+                case HloOpcode::kShiftRightArithmetic:
+                    Result = b_->CreateAShr(Input1, Input2, "tensor_ashr");
+                    break;
+                case HloOpcode::kShiftRightLogical:
+                    Result = b_->CreateLShr(Input1, Input2, "tensor_lshr");
+                    break;
+                default:
+                    assert(false && "Unsupported binary op");
+                    break;
+            }
+
+
+            llvm::Instruction* Return =  b_->CreateRet(Result);
+
+
+
+
+            // Return the IRBuilder to the previously
+            // saved insert point
+            b_ ->restoreIP(InsertPoint);
+
+            return binop;
         }
 
 

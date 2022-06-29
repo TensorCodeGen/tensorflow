@@ -270,6 +270,7 @@ cc_library(
         "//tensorflow/compiler/xla/service/llvm_ir:llvm_util",
         "//tensorflow/core:lib",
         "//tensorflow/compiler/xla/service/tlx:tlx_utils",
+        "//tensorflow/compiler/xla/service/tlx:tlx_map_emitter",
         "@com_google_absl//absl/strings",
         "@llvm-project//llvm:Core",
         "@llvm-project//mlir:IR",

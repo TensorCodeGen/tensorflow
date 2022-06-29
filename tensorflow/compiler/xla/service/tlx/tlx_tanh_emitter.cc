@@ -159,7 +159,7 @@ namespace xla {
 
             llvm::VectorType*  TargetVecTy = llvm::FixedVectorType::get(TargetElemType, num_target_values);
 
-            bool use_tlx_map = true;
+            bool use_tlx_map = false;
             llvm::CallInst* Tanh_vector = nullptr;
             if(use_tlx_map){
                 llvm::Function* TanH = CreateTanhElementFunction(SourceElemType, b_);
