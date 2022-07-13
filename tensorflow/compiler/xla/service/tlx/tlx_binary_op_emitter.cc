@@ -150,7 +150,7 @@ namespace xla {
 
             llvm::Value* Result = nullptr;
 
-            bool use_map = true;
+            bool use_map = false;
             bool is_scalar = (num_target_values == 1);
 
             if(use_map && !is_scalar) {
